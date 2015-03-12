@@ -1,0 +1,300 @@
+############################################################################
+#
+# Demo file for the mp package
+#
+############################################################################
+
+setproc DemoMPRegAlgo {} "{{{} {Demo command that computes and displays \
+the result of the regular matching pursuit algorithm (30 atoms) on an \
+artificial signal which consists in the sum of a sinus a dirac and some \
+white noise. It also displays the reconstructed signal when using only \
+'long' atoms (i.e., to recover the sinus) and the reconstructed signal \
+when using only 'short' atoms (i.e., to recover the dirac). \
+It also teaches you how to use the mouse.}}}" {
+
+  import args m
+  import args objCur
+  
+#
+# Set the current book (structure that stores the result of a
+# Matching Pursuit decomposition) to 'm'
+#
+  m
+  
+  xy=[new &signal]
+  realSize=10
+  size=1024
+  dx= realSize/size
+  
+  xy=I(size)*dx
+  
+#
+# Creates the signal we will later analyze : a sine and a dirac superimposed
+# It is stored in signal '0' of the current object which is the book 'm'
+# (Note that a book has 10 signals numbered from 0 to 9)
+#
+  0m=sin(2*pi*xy*4)+1.2*(I==(size/2))+Grand*0.1
+  0m.dx=dx
+
+
+#
+# Computes the Matching Pursuit with a gabor dictionary on signal '0',
+# with 30 iterations, plain algorithm
+#
+  mpd 30
+
+#
+# Reconstructs a signal from the Matching Pursuit decomposition,
+# using only the atoms with a "large" octave within [3,12], ie with a
+# time-length of 8 to 4096. The result looks like the sine.
+# Both the noise and the dirac have been removed
+#
+  mpr m 1 -s 2^3 2^12
+  
+  
+#
+# Reconstructs a signal from the Matching Pursuit decomposition,
+# using only the atoms with a "small" octave within [1,2], ie with a
+# diracs (time length 2) and atoms of time-length 4. 
+# The result looks like the dirac.
+# Both the sine and the noise have been removed
+#
+  mpr 2 -s 2^1 2^2
+
+#
+# Displays the original signal, its time-frequency book
+# representation and the two signals we reconstructed.
+# We only display between abscissa 2 and 7 (in order to avoid border effects).
+# The time-frequency representation uses a logarithmic scale (decibels)
+# for colors, black is -34dB compared to the peak of energy.
+#
+
+   disp 0 objCur 1 2 -x 2 7 -size 700 600 -..2 -db 1 -expo 34 -..fv1 -title "Sinus + Dirac + Noise" -..fv2 -title "Time Frequency Representation" -..fv3 -title "Reconstructed sinus" -..fv4 -title "Reconstructed dirac" 
+
+  echo 
+  echo THESE ARE THINGS THAT YOU CAN DO :
+  import args 1 System
+
+
+  echo
+  echo (1) You can try the different mouse cursor modes on the mp images
+  echo    just hitting the 'c' key while the mouse pointer being in an image
+  echo    There are 3 modes : none, cross-hair and circle. In this last mode
+  echo    it will circle the atom which is the closest to the mouse and it will
+  echo    display information about it. 
+  echo
+  echo (2) Using the 'left'/'right' keys, allow you to circle the 
+  echo    previous/next atom that was selected by the pursuit. 
+  echo    The 'down' key circles the first one and the 'up' key the last one.
+  echo
+  echo (3) You can zoom any matching pursuit representation :
+  echo    use the left button and drag and drop to zoom and the middle one
+  echo    to zoom out.
+  echo    You can change the zoom mode by hitting the 'z' key over any graph. 
+  echo    There are 2 modes : the default (just described above), and
+  echo    the y constrained-rect mode (the ordinate are constrained).
+  echo
+  echo DO NOT FORGET ALSO
+  echo
+  echo (5) Fields of gobjects : hold down the 'shift' and 'ctrl' keys and 
+  echo    press the left mouse button on a mp image.
+  echo    You will see all the value of each field of the corresponding mp 
+  echo    gobject. You can change them using the 'setg' or 'setgu' command. 
+  echo    IT CAN BE DONE ON ANY GOBJECT, YOU SHOULD PLAY AROUND WITH THAT
+  echo    FEATURE IN ALL THE OTHER DEMOS...
+  echo
+  echo (6) Bindings of gobjects : hold down the 'shift' and 'ctrl' keys and
+  echo    press the right button on a mp image. You will see all mouse and
+  echo    keyboard bindings that are bound to that gobject. 
+  echo    IT CAN BE DONE ON ANY GOBJECT, YOU SHOULD PLAY AROUND WITH THAT 
+  echo    FEATURE IN ALL THE OTHER DEMOS...
+  echo 
+}
+
+setproc DemoMPFastAlgo {} "{{{} {Demo command that compares \
+the results of both the regular matching pursuit algorithm and the fast one (using 100 atoms) on an artificial \
+signal which consists in the sum \
+of a sinus a dirac and some white noise. It displays the time-frequency representations \
+given by both the fast algorithm and the regular one as well as the so-obtained reconstruction (along with the original \
+and the error). It also displays the decays of the residue energy (after each iteration) for both \
+the regular and the fast algorithms.}}}" {
+
+  import args m
+  import args n
+  import args objCur
+#
+# Set the current book (structure that stores the result of a
+# Matching Pursuit decomposition) to 'm'
+#
+  m
+  
+  xy=[new &signal]
+  realSize=10
+  size=1024
+  dx=realSize/size
+  xy=I(size)*dx
+  
+#
+# Creates the signal we will later analyze : a sine and a dirac superimposed
+# It is stored in signal '0' of the current object which is the book 'm'
+# (Note that a book has 10 signals numbered from 0 to 9)
+#
+  0m=sin(2*pi*xy*4)+1.2*(I==(size/2))+Grand*0.1
+  0m.dx=dx
+
+#
+# Computes the Matching Pursuit with a gabor dictionary on signal '0',
+# with 100 iterations, plain algorithm
+#
+  printf "Regular algo using 100 atoms......."
+  {dict decay} = [mpd 100]
+  printf "Done!\n"
+
+#
+# Gets the decay of the residue energy in signal '1'
+# in decibels
+#
+  1m=10*log(decay/decay[0])
+
+
+#
+# Displays the signal and the time-frequency book representation 
+#
+  disp mp 0 m -title "Regular Matching Pursuit" -pos 20 48 -x 2 7 -..2 -db 1 -expo 34 -..fv2 -title "Time Frequency Representation" -..fv1 -title "Sinus + Dirac + Noise"
+
+
+#
+# Recomputes the same thing with a much faster algorithm :
+# Using a sub-dictionary of 100 maximas
+# and using interpolation on frequency 
+#
+
+# We first set the current book to 'n'
+  n
+  0n=0m
+  printf "Fast algo using 100 atoms......."
+  {dict decay} = [fastmpd 100 100 '-O' {'freq'}]
+  printf "Done!\n"
+
+#
+# Gets the decay of the residue energy in signal '1'
+# in decibels
+#
+  1n=10*log(decay/decay[0])
+
+#
+# Reconstructing the signal from the book
+# in signal '2'
+  mpr 2
+
+#
+# Comparing with the original 
+#
+
+  disp sig 0m 2n 2n-0m -title "Reconstruction" -x 2 7 -pos 600 421 -..fv1 -title "Original" -..fv2 -title "Reconstruction (fast algorithm)" -..fv3 -title "Error"
+
+
+#
+# Displaying the decays
+#
+
+  disp decaywin 1m 1n -title "Decay of the Energy of the residue" 
+  disp decaywin -S 1 -synchro 'xy' -pos 595 48 -..1 -fg 'red' -..fv1 -title "Red = regular algorithm" 
+#
+# Displaying the new energy map
+#
+  disp mp1 0m n -title "Fast Matching Pursuit" -pos 20 238  -x 2 7 -..2 -db 1 -expo 34 -..fv2 -title "Time Frequency Representation" -..fv1 -title "Sinus + Dirac + Noise"
+
+  echo 
+  echo THESE ARE THINGS THAT YOU CAN DO :
+  import args 1 System
+
+  echo
+  echo (0) Note that the matching pursuit allows to get very sharp details
+  echo    both in frequency and time !
+  echo
+  echo (1) You can play the piano sound by just hitting 'shift+tab' while 
+  echo    the mouse being over the signal. On this signal, you can of course
+  echo    perform whatever you were taught in the 'DemoSound' Demo of the 
+  echo    'sound' package.
+  echo
+  echo (2) You can zoom any matching pursuit representation : 
+  echo    use the left button and drag and drop to zoom in and the middle one 
+  echo    to zoom out.
+  echo    You can change the zoom mode by hitting the 'z' key over any graph. 
+  echo    There are 2 modes : the default (just described above), and
+  echo    the y constrained-rect mode (the ordinate are constrained).
+  echo  
+  echo (3) When an atom is circled (run other 'mp' demos to learn how to do so) 
+  echo    you can hear this atom by hitting the '=' key. The '<' key allows 
+  echo    to hear the reconstruction using all the atoms up to the one 
+  echo    circled (included) and the '>' allows to hear the reconstruction 
+  echo    using all the atoms from the one that is circled (excluded).
+  echo    You should play around listening to harmonic atoms or atoms of the
+  echo    attack of the sound or at the end (low frequency).
+  echo 
+}
+
+setproc DemoMPSound {} "{{{} {WARNING : YOU SHOULD FIRST RUN THE DEMO 'DemoSound' OF THE SOUND PACKAGE AND THE OTHER DEMOS OF THE MP PACKAGE \
+BEFORE RUNNING THIS DEMO. This Demo command performs the matching pursuit analysis of a piano sound and teaches you \
+the sound capabilities of the 'mp' package. This demo involves computation that can take 2-3 minutes. \
+This demo is also included in the 'sound' package.}}}" {
+
+  import args m
+  import args objCur
+#
+# Set the current book (structure that stores the result of a
+# Matching Pursuit decomposition) to 'm'
+#
+  m
+  
+  global _scriptDirectory
+  _scriptDir = _scriptDirectory[0]
+  dataDir="${_scriptDir}/sound/sounds"
+  sound read 0 '${dataDir}/piano.aiff16'
+
+  printf "Computing the first 300 atoms of the matching pursuit....\n"
+  printf "(It can take a few minutes .... be patient......)"
+  fastmpd 300 100 '-O' {'freq'}
+  printf "Done!\n"
+
+#
+# Displaying the new energy map
+#
+  disp mp1 0m m -title "Matching Pursuit of a piano sound" -pos 20 238  -..2 -db 1 -expo 50 -..fv2 -title "Time Frequency Representation" -..fv1 -title "The piano sound"
+  
+  
+  echo 
+  echo THESE ARE THINGS THAT YOU CAN DO :
+  import args 1 System
+
+
+  echo
+  echo (0) Note that the matching pursuit allows to get very sharp details
+  echo    both in frequency and time !
+  echo
+  echo (1) You can play the piano sound by just hitting 'shift+tab' while 
+  echo    the mouse being over the signal. On this signal, you can of course
+  echo    perform whatever you were taught in the 'DemoSound' Demo of the 
+  echo    'sound' package.
+  echo
+  echo (2) You can zoom any matching pursuit representation : 
+  echo    use the left button and drag and drop to zoom in and the middle one 
+  echo    to zoom out.
+  echo    You can change the zoom mode by hitting the 'z' key over any graph. 
+  echo    There are 2 modes : the default (just described above), and
+  echo    the y constrained-rect mode (the ordinate are constrained).
+  echo  
+  echo (3) When an atom is circled (run other 'mp' demos to learn how to do so) 
+  echo    you can hear this atom by hitting the '=' key. The '<' key allows 
+  echo    to hear the reconstruction using all the atoms up to the one 
+  echo    circled (included) and the '>' allows to hear the reconstruction 
+  echo    using all the atoms from the one that is circled (excluded).
+  echo    You should play around listening to harmonic atoms or atoms of the
+  echo    attack of the sound or at the end (low frequency).
+  echo 
+}
+
+help DemoMPRegAlgo
+help DemoMPFastAlgo
+help DemoMPSound

@@ -1,0 +1,23 @@
+# The name of the package
+PACKAGENAME = image
+
+
+#
+# The specific list of image package files
+#
+OBJS = $(OBJDIR)image_package.$(OBJEXT)\
+$(OBJDIR)image_graph.$(OBJEXT)\
+$(OBJDIR)image_matrix.$(OBJEXT)\
+$(OBJDIR)image_functions.$(OBJEXT)\
+$(OBJDIR)image_file.$(OBJEXT)\
+$(OBJDIR)image_alloc.$(OBJEXT)
+
+#
+# The specific image package options
+#
+OPTIONS  = $(CCOPTIONS) -I$(INCLUDEDIR) -I../../kernel/include -I../../package_signal/include -I../../unix/include -I$(X11INCLUDE)
+
+# The specific image package dependance
+$(OBJS) $(MULTIDEP) $(INCLUDEDIR)/images.h ../../kernel/include/*.h ../../unix/include/*.h
+$(OBJDIR)/image_functions.o $(MULTIDEP) ../../package_signal/include/signals.h
+

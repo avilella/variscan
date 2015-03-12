@@ -1,0 +1,22 @@
+# The name of the package
+PACKAGENAME = extrema1d
+
+#
+# The specific list of Extrema1d package files
+#
+OBJS = $(OBJDIR)ext_chain.$(OBJEXT) \
+$(OBJDIR)ext_compute.$(OBJEXT) \
+$(OBJDIR)ext_file.$(OBJEXT) \
+$(OBJDIR)extrema1d_package.$(OBJEXT) \
+$(OBJDIR)ext_graph.$(OBJEXT) \
+$(OBJDIR)ext_alloc.$(OBJEXT)
+
+#
+# The specific Extrema1d options
+#
+OPTIONS  = $(CCOPTIONS) -I$(INCLUDEDIR) -I../../kernel/include -I../../package_signal/include -I../../package_image/include  -I../../package_wtrans1d/include -I../../unix/include -I$(X11INCLUDE)
+
+#
+# The specific dependance
+#
+$(OBJS) $(MULTIDEP) ../../package_wtrans1d/include/*.h ../../kernel/include/*.h ../../unix/include/*.h ../../package_image/include/*.h ../../package_signal/include/*.h $(INCLUDEDIR)/*.h

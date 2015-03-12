@@ -1,0 +1,5 @@
+ran1.o: ran1.c /usr/include/stdc-predef.h ran1.h
+
+/usr/include/stdc-predef.h:
+
+ran1.h:

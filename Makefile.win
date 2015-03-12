@@ -1,0 +1,105 @@
+# Project: variscan
+# Makefile created by Dev-C++ 4.9.9.2
+
+CPP  = g++.exe
+CC   = gcc.exe
+WINDRES = windres.exe
+RES  = 
+OBJ  = src/common.o src/dlist.o src/dystring.o src/errabort.o src/free.o src/linefile.o src/memalloc.o src/output.o src/pop.o src/ran1.o src/readaxt.o src/readhapmap.o src/readmaf.o src/readmav.o src/readmga.o src/readphylip.o src/readxmfa.o src/statistics.o src/swcolumn.o src/swnet.o src/swpoly.o src/swref.o src/variscan.o src/window.o src/intExp.o src/kxTok.o $(RES)
+LINKOBJ  = src/common.o src/dlist.o src/dystring.o src/errabort.o src/free.o src/linefile.o src/memalloc.o src/output.o src/pop.o src/ran1.o src/readaxt.o src/readhapmap.o src/readmaf.o src/readmav.o src/readmga.o src/readphylip.o src/readxmfa.o src/statistics.o src/swcolumn.o src/swnet.o src/swpoly.o src/swref.o src/variscan.o src/window.o src/intExp.o src/kxTok.o $(RES)
+LIBS =  -L"C:/MinGW/lib"  
+INCS =  -I"C:/MinGW/include" 
+CXXINCS = 
+BIN  = variscan.exe
+CXXFLAGS = $(CXXINCS)   -O3
+CFLAGS = $(INCS) -DVARISCAN -lm -W -Wall   -O3
+RM = rm -f
+
+.PHONY: all all-before all-after clean clean-custom
+
+all: all-before variscan.exe all-after
+
+
+clean: clean-custom
+	${RM} $(OBJ) $(BIN)
+
+$(BIN): $(OBJ)
+	$(CC) $(LINKOBJ) -o "variscan.exe" $(LIBS)
+
+src/common.o: src/common.c
+	$(CC) -c src/common.c -o src/common.o $(CFLAGS)
+
+src/dlist.o: src/dlist.c
+	$(CC) -c src/dlist.c -o src/dlist.o $(CFLAGS)
+
+src/dystring.o: src/dystring.c
+	$(CC) -c src/dystring.c -o src/dystring.o $(CFLAGS)
+
+src/errabort.o: src/errabort.c
+	$(CC) -c src/errabort.c -o src/errabort.o $(CFLAGS)
+
+src/free.o: src/free.c
+	$(CC) -c src/free.c -o src/free.o $(CFLAGS)
+
+src/linefile.o: src/linefile.c
+	$(CC) -c src/linefile.c -o src/linefile.o $(CFLAGS)
+
+src/memalloc.o: src/memalloc.c
+	$(CC) -c src/memalloc.c -o src/memalloc.o $(CFLAGS)
+
+src/output.o: src/output.c
+	$(CC) -c src/output.c -o src/output.o $(CFLAGS)
+
+src/pop.o: src/pop.c
+	$(CC) -c src/pop.c -o src/pop.o $(CFLAGS)
+
+src/ran1.o: src/ran1.c
+	$(CC) -c src/ran1.c -o src/ran1.o $(CFLAGS)
+
+src/readaxt.o: src/readaxt.c
+	$(CC) -c src/readaxt.c -o src/readaxt.o $(CFLAGS)
+
+src/readhapmap.o: src/readhapmap.c
+	$(CC) -c src/readhapmap.c -o src/readhapmap.o $(CFLAGS)
+
+src/readmaf.o: src/readmaf.c
+	$(CC) -c src/readmaf.c -o src/readmaf.o $(CFLAGS)
+
+src/readmav.o: src/readmav.c
+	$(CC) -c src/readmav.c -o src/readmav.o $(CFLAGS)
+
+src/readmga.o: src/readmga.c
+	$(CC) -c src/readmga.c -o src/readmga.o $(CFLAGS)
+
+src/readphylip.o: src/readphylip.c
+	$(CC) -c src/readphylip.c -o src/readphylip.o $(CFLAGS)
+
+src/readxmfa.o: src/readxmfa.c
+	$(CC) -c src/readxmfa.c -o src/readxmfa.o $(CFLAGS)
+
+src/statistics.o: src/statistics.c
+	$(CC) -c src/statistics.c -o src/statistics.o $(CFLAGS)
+
+src/swcolumn.o: src/swcolumn.c
+	$(CC) -c src/swcolumn.c -o src/swcolumn.o $(CFLAGS)
+
+src/swnet.o: src/swnet.c
+	$(CC) -c src/swnet.c -o src/swnet.o $(CFLAGS)
+
+src/swpoly.o: src/swpoly.c
+	$(CC) -c src/swpoly.c -o src/swpoly.o $(CFLAGS)
+
+src/swref.o: src/swref.c
+	$(CC) -c src/swref.c -o src/swref.o $(CFLAGS)
+
+src/variscan.o: src/variscan.c
+	$(CC) -c src/variscan.c -o src/variscan.o $(CFLAGS)
+
+src/window.o: src/window.c
+	$(CC) -c src/window.c -o src/window.o $(CFLAGS)
+
+src/intExp.o: src/intExp.c
+	$(CC) -c src/intExp.c -o src/intExp.o $(CFLAGS)
+
+src/kxTok.o: src/kxTok.c
+	$(CC) -c src/kxTok.c -o src/kxTok.o $(CFLAGS)

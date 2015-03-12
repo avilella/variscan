@@ -1,0 +1,127 @@
+############################################################################
+#
+# Demo file for the signal package
+#
+############################################################################
+
+
+setproc DemoSignalDisp {} "{{{} {Demo that displays different signals and teaches you what you can do with the mouse}}}" {
+  StartDemo DemoSignalDisp
+}
+
+setproc _DemoSignalDisp0 {} {
+
+  # Generate the signals
+  s1 = [sin 100 4]
+  s2 = .2*Grand(80)
+  s3 = [sin 100 6]
+     
+  # Display the signals
+  disp {{s1 s2}} s3 -..1 -fg 'red' -pen 2 -..3 -curve 'o' -3 -..fv1 -title "This is a title"  -..fv2 -title "This is another title" 
+  
+  import args 1 System
+  
+  printf "\nIf you want to learn how these graphs were generated look at the procedure \
+'_DemoSignalDisp0' in the file 'scripts/signal/DemoSignal'\n"
+}
+
+
+setproc _DemoSignalDisp1 {} {
+printf "You can try the different mouse cursor modes on the graphs of the signals \
+just hitting the 'c' key while the mouse pointer being in the graphs \
+(there are 3 modes : none, cross-hair (follow the pointer), cross-hair1 (follow the curve)).\n"
+}
+
+setproc _DemoSignalDisp2 {} {
+printf "You can zoom any signal : use the left and right buttons to zoom in and the middle one to zoom out. \n\
+You can change the zoom mode by hitting the 'z' key over any graph. \n\
+There are 3 modes : default (just described above), rect (just use the left button and \
+do a drag and drop), the y-constrained rect mode (same as rect but the height of the rectangle \
+is constrained).\n"
+}
+
+setproc _DemoSignalDisp3 {} {
+printf "You can perform linear fit on any curve. Zoom in the part of the curve you want to fit, \
+and just press the middle mouse button on the curve while holding the shift key down.  \n\
+The fit is displayed along with the slope. The line will be constantly redrawn on top of the \
+curve (even if you zoom in or zoom out). In order to erase the line just press the left button \
+along with the shift key.\n"
+}
+
+setproc _DemoSignalDisp4 {} {
+printf "You can draw lines on a curve (for hand fitting). Just press the left button with the shift key \
+down and drag and drop the mouse. To erase the so-drawn line just press the left button \
+along with the shift key (without moving the mouse).\n"
+}
+
+setproc _DemoSignalDisp5 {} {
+printf "Are you lost ?\n\
+To remind you what you can do interactively on a graphic object you can just point to it with the mouse \
+and type 'b'... Try it on the title of one graph...\n\
+Nice isn't it ? It displays all the 'bindings', i.e., all the interactive actions linked to the graphic object.\n\
+For instance, it tells you that you can edit the text using the 'esc' key\n\
+If you are ready, type 'b' again to make the help window disappear and go on in the demo.\n"
+}
+
+setproc _DemoSignalDisp6 {} {
+printf "Do you want to try some other bindings ? \n\
+Text editing : put the pointer of the mouse on one of the title (a Text gobject). Just \
+press the 'esc' key (you are entering the editing-mode, do not move the mouse out, you \
+would leave it right away). Hitting text would add it at the end of the string. The \
+down and up arrow change the size of the font and the tab key change the style (normal/bold).\n\
+This can be done whenever you want on any Text gobjects (including the labels).\n"
+}
+
+setproc _DemoSignalDisp7 {} {
+printf "Let's try some more bindings (you can always type 'b' to be reminded of them)? \n\
+Moving gobjects : hold down the shift and ctrl keys and press the middle button on a title. \
+A simple drag and drop moves it. \n\
+IT CAN BE DONE ON ANY GOBJECT, YOU SHOULD PLAY AROUND WITH THAT FEATURE IN ALL THE OTHER DEMOS...\n"
+}
+
+setproc _DemoSignalDisp8 {} {
+printf "Go with the pointer on the red signal... you should see its full name appearing at the bottom left. \n\
+Its full name is 'Window1.fv1.view.1'. \
+This corresponds to a path that specifies the hierarchy of the object : it's name is '1' and it is in a View \
+object named 'view' which itself is in a FramedView object named 'fv1' which itself is in a Window object named 'Window1' \n\
+The other graph signal hierarchy is 'Window1.fv1.view.2' and the bottom one is \
+'Window1.fv1.view.3'. \n\
+Let's change the color of the red one to blue !\n\
+To change one field of a graphic object you must use the 'setgu' command.\n\
+The syntax is 'setgu *objectName* -field1 <val1> -field2 <val2> ...\n\
+Try the following : \n\
+   setgu Window1.fv1.view.1 -fg 'blue'\n"
+}  
+
+setproc _DemoSignalDisp9 {} {
+printf "Actually, the good news is that you don't need to type the whole hierarchic name of the graphic object !!\n\
+You can just call it by it's 'last' name if non ambiguous (if it is, it changes the fields of all the matching objects):\n\
+  setgu ..1 -fg 'green' -pen 3\n"
+}
+
+setproc _DemoSignalDisp10 {} {
+printf  "What are the fields of a signal graphic object ?\n\
+It is very easy to know about the fields about any object in LastWave\n\
+Just point to it with the mouse and type 'h' \
+A Help window will display all the fields along with their values\n\
+Have fun changing them!\n\
+Typing 'h' again displays all the messages you can send to the object and typing 'h' agin displays the 'bindings'\n\
+Typing 'h' again deletes the Help window\n"
+}
+
+setproc _DemoSignalDisp11 {} {
+printf "Actually the main 'disp' command (that is used to display the graphs or images or ...) \
+let you change any field of any graphic object directly (without using 'setgu'). \n\
+Try to simply type 'disp' --> it just redraws the graphs. \n\
+Now let's say you want to make the \
+first signal blue, the third grey, change the text and the color of the title of the \
+second graph and add label to the first x-axis !! \n\
+You can do it using a single command \n\
+    disp -..1 -fg 'blue' -..3 -fg 'grey' -..fv2.title -string 'New' -fg 'green' -..fv1 -xLabel 'Xlabel' \n\
+Whenever 'disp' meets a '-gobjectName' all the field messages that follow (up to the next '-gobjectName') are sent to \
+the corresponding gobject. \n\
+By the way the new xlabel is a text graphic object (Type 'h' on it to see its field values!). \
+You can move it or edit it ...\n"
+}
+
+help DemoSignalDisp

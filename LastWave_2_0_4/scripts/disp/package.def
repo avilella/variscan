@@ -1,0 +1,14 @@
+#
+# Creation of the 'disp' package 
+#
+
+# We first create the new 'disp' package
+if ([package list 'disp'].length==0) {
+  package new 'disp' 1998 '2.0.4' "E. Bacry" "Package that allows high level displays of any gobject \
+which is associated to a variable's content (such as signals, wtrans1d, books...)."
+}
+
+# Then just load it !
+package load 'disp'
+
+

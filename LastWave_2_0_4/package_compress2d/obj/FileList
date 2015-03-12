@@ -1,0 +1,26 @@
+#
+# The name of the package
+#
+PACKAGENAME = compress2d
+
+#
+# The specific list of Compress2d package files
+#
+OBJS = $(OBJDIR)arithcode.$(OBJEXT)\
+$(OBJDIR)coder.$(OBJEXT) \
+$(OBJDIR)bitio.$(OBJEXT) \
+$(OBJDIR)compress2d_package.$(OBJEXT) \
+$(OBJDIR)quantizer.$(OBJEXT) \
+$(OBJDIR)compress2.$(OBJEXT) \
+$(OBJDIR)ihisto.$(OBJEXT)
+
+#
+# The specific Compress2d options
+#
+OPTIONS  = $(CCOPTIONS) -I$(INCLUDEDIR) -I../../kernel/include -I../../unix/include -I$(X11INCLUDE) -I../../package_owtrans2d/include  -I../../package_image/include -I../../package_signal/include
+
+#
+# The specific dependance
+#
+$(OBJS) $(MULTIDEP)  $(INCLUDEDIR)/*.h ../include/*.h ../../package_owtrans2d/include/*.h ../../package_image/include/*.h ../../kernel/include/*.h ../../unix/include/*.h ../../package_signal/include/*.h ../../package_image/include/*.h
+

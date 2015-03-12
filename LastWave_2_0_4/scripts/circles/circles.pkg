@@ -1,0 +1,60 @@
+#..........................................................................
+#                                                                         
+#      L a s t W a v e    P a c k a g e 'circles' 2.0
+#
+#      Author Emmanuel Bacry                                               
+#      
+#      File associated the tutorial circles package 
+#                                                                    
+#..........................................................................
+
+
+
+# The default position of circles windows
+disp.circles.rect={20 55 330 330}
+
+
+##########################################################
+#  
+# Perform zoom on circles with the mouse
+#  
+##########################################################
+
+SetZoomBindings GraphCircles {'rect' 'xrect' 'yrect'}
+
+
+
+##########################################################
+#
+# Perform cursor displaying on circles
+#
+##########################################################
+
+setproc _CursorTextGraphCircles {}  {
+  c = [setg @object -graph]
+  sprintf id "%v" c
+  return "$@objname ($id): $@x $@y" 
+}
+
+setproc _DrawCursorNoneGraphCircles {cursor} {
+  cursor.erase=null
+  return [_CursorTextGraphCircles]
+}
+
+setproc _DrawCursorGraphCircles {cursor}  {
+  _ViewDrawCrossHair cursor.view @x @y
+  cursor.erase = %%`_ViewDrawCrossHair '$cursor.view' $@x $@y`
+  return [_CursorTextGraphCircles]
+}
+
+setproc _DrawCursor1GraphCircles {cursor}  {
+  c = [setg @object -graph]
+  i = [circles closest c @x @y]
+  x = c.x[i]
+  y = c.y[i]
+  _ViewDrawCrossHair cursor.view x y
+  cursor.erase = %%`_ViewDrawCrossHair '$cursor.view' $x $y`
+  return "$@objname : $x $y [index = $i] "
+}
+
+SetCursorBindings GraphCircles {%_DrawCursorNoneGraphCircles %_DrawCursorGraphCircles %_DrawCursor1GraphCircles}

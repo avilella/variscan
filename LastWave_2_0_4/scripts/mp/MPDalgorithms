@@ -1,0 +1,278 @@
+#;; -*- Mode: Tcl -*-
+#..........................................................................
+#                                                                         
+#      L a s t W a v e    P a c k a g e 'mp' 2.0
+#
+#      Author Remi Gribonval
+#      
+#      File associated the mp package
+#                                                                    
+#..........................................................................
+
+#
+# Below are the various script implementations of MP decompositions
+#
+
+# A utility to compute the default maximum windowSize for MP decomposition
+setproc _MPLogMaxWindowSize {{&book book} {&signal signal}} "{{{<book> <signal>} {Computes the maximum possible windowSize for Matching Pursuit analysis of a <signal>.}}}" {
+    logMaxWindowSize = 1
+    maxWindowSize    = 2
+    while (maxWindowSize<=min(signal.size,2*book.freqIdNyquist)) {
+	maxWindowSize    *= 2
+	logMaxWindowSize += 1
+    }
+    return (logMaxWindowSize-1)
+}
+
+
+#
+# Parses the [<signal>=0book] [-w {<windowShapes>}] [-s {<windowSizes>}] [-O {<MP optimizations>}]' syntax
+# and returns a triple {dictionary,residualEnergy,options}
+#
+setproc BuildDict {{&book book} {&listv freq0Range} {&listv arg}} "{{{<book> {<args>}} {Parses the arguments of a *mpd command to derive the correct dictionary and residual energy signals}}}" {
+    d      = [new &dict]
+
+    # Reading the signal
+    # By default it is '0book'
+    signal = 0book
+    tmp    = arg
+    if (arg.size>0) {
+	if ([val type arg[0]]=='&signal' || [val type arg[0]]=='&signali') {
+	    {signal .tmp} = arg
+	    if (tmp is null) {tmp = {}}
+	}
+    } 
+    setdict channels d {signal}
+    residualEnergy = <d.signalEnergy>
+
+    # Reading the options
+    windowShapes  = {'gauss'}
+    maxWindowSize = [_MPLogMaxWindowSize book signal]
+    windowSizes   = 2^(2:maxWindowSize)
+    optim         = {}
+
+    while (tmp.size>0) {
+	if (tmp.size<2) {errorf "Syntax error in the arguments of *mpd"}
+	{flag .tmp1} = tmp
+	if (flag=='-w') {
+	    # Reading the windowShapes 
+	    # By default it is a Gaussian, else we read a &listv 
+	    # For example {'hanning' 'FoF' 'gauss'}
+	    {windowShapes .tmp} = tmp1 
+	    if ([var type windowShapes]=='&string') {windowShapes = {windowShapes}}
+	} elseif (flag=='-s') {
+	    # Reading the windowSizes
+	    # By default it is the range 2^(2:maxWindowSize)
+	    # Else we read a &signal/&signali/&listv/&range which should contain integers
+	    # (for the moment they should be powers of two) 
+	    {windowSizes  .tmp} = tmp1
+	} elseif (flag=='-O') {
+	    # Reading the MP optimizations 'freq' or 'chirp' or lists of them
+	    {optim .tmp}      = tmp1
+	} else errorf "Bad option %s" $flag
+	if (tmp is null) {tmp = {}}
+    }
+
+    if (freq0Range.size==0) {
+	# Adding the STFT sub-dictionaries
+	foreach windowSize windowSizes {
+	    foreach windowShape windowShapes {
+		setdict add d '&stft' {'real' windowShape windowSize}
+	    }
+	}
+    } else {
+	# Adding the HARMO sub-dictionaries
+	foreach windowSize windowSizes {
+	    foreach windowShape windowShapes {
+		setdict add d '&stft' {'harmo' windowShape windowSize freq0Range}
+	    }
+	}
+    } 
+
+    return {d residualEnergy optim}
+}
+
+setproc mpd {{&book book objCur} {&int niter} .l} "{{{[<book>=objCur] <nIter> [<signal>=0book] ['-w' {<windowShapes>}={'gauss'}] ['-s' {<windowSizes>}=2^(2:max)] ['-O' {MPoptimizations}]} {Makes <nIter> iterations of a Matching Pursuit on <signal> (by default, \
+we analyze the signal '0' of the <book>) and stores the result in <book>.\
+The book will end up with <nIter> molecules in it, except if the pursuit stops before because the residue is zero.\n\
+The default shape of the atoms in the dictionary is Gaussian but you can use, e.g., Hanning and FoF windows using the {'hanning' 'FoF'} syntax for {<windowShapes>}. The default atom sizes in the dictionary are powers of two from 2 to 2^max, where 2^max is about the size of the signal, but you can choose other sizes  (powers of two) using, e.g., the {2 16 32} syntax for {<windowShapes>}. Note that for {<windowShapes>} you can provide either a &range, a &listv or a &signal or &signali.\n\
+The possible MP optimizations options are 'chirp' and 'freq' which correspond to extending the dictionary to chirps (only for 'gauss' window shapes) and newton interpolation of the frequency, respectively.\n\
+The 'mpd' command prints the elapsed time in seconds and returns a &listv {<dict> <residualEnergy>} that can be used later on to resume the pursuit.}} {{[<book>=objCur] <nIter> <dict> <residualEnergy> [{MPoptimizations}]} {To resume a Matching Pursuit using the pair <dict> <residualEnergy> returned by a previous call, you only have to specify <nIter> and you can specify the optimizations you want to perform.}}}" {
+    timeBeg = [time]
+
+#
+# Treat the case where we resume a pursuit
+# i.e. the '*mpd [<book>=objCur] <nIter> <dict> <resEnergy> ['-O' {<MP options>}]' syntax
+#
+    if (l.size==0) {
+	{d residualEnergy opt} = [BuildDict book {} l]
+    } elseif ([val type l[0]]=='&dict') {
+	{d residualEnergy .opt} = l
+	if (opt is null) {opt={}}
+    } else {
+	{d residualEnergy opt} = [BuildDict book {} l]
+    }
+
+    clear book
+
+#
+# Then we read the optimizations options and perform the Matching Pursuit Decomposition
+#
+    for {m = 0} (m<niter) {m=m+1} {
+	setdict update d
+	mol = [setdict getmax d {'causal'}]
+	if (mol is null) {break}
+	if (mol.coeff2==0) {break}
+	setdict optmol d mol opt
+	book+=mol
+	setdict rmmol d mol
+	residualEnergy = <residualEnergy,d.signalEnergy>
+	# Here we could stop if time elapsed is too big or signalEnergy is small enough
+    }
+    timeEnd = [time]
+    deltat = timeEnd-timeBeg 
+    echo $deltat
+    return {d residualEnergy}
+}
+
+setproc fastmpd {{&book book objCur} {&int niter} {&int nmaxima} .l}  "{{{[<book>=objCur] <nIter> <nMaxima> [<signal>=0book] ['-w' {<windowShapes>}={'gauss'}] ['-s' {<windowSizes>}=2^(2:max)] ['-O' {MPoptimizations}]} {Makes <nIter> iterations of a Fast Matching Pursuit on <signal> (by default, \
+we analyze the signal '0' of the <book>) and stores the result in <book>. \
+The book will end up with <nIter> molecules in it, except if the pursuit stops before because the residue is zero.\n\
+Fast Matching Pursuit uses sub-dictionaries of <nmaxima> local time-frequency maximas (it is MUCH faster than the regular 'mpd' algorithm but the algorithm is more greedy and may sometimes give poorer approximations of the analyzed signal). HINT : as a rule of thumb, you can choose <nmaxima> of the order of <nIter>. The algorithm is optimized for 'gauss' and 'FoF' atoms type.\n\
+The default shape of the atoms in the dictionary is Gaussian but you can use, e.g., Hanning and FoF windows using the {'hanning' 'FoF'} syntax for {<windowShapes>}. The default atom sizes in the dictionary are powers of two from 2 to 2^max, where 2^max is about the size of the signal, but you can choose other (still powers of two!) sizes using, e.g., the {2 16 32} syntax for {<windowShapes>}. Note that for {<windowShapes>} you can provide either a &range, a &listv or a &signal or &signali.\n\
+The possible MP optimizations options are 'chirp' and 'freq' which correspond to extending the dictionary to chirps (only for 'gauss' window shapes) and newton interpolation of the frequency, respectively.\n\
+The 'fastmpd' command prints the elapsed time in seconds and returns a &listv {<dict> <residualEnergy>} that you can store to later resume the pursuit using the 'mpd' command.}}}" {
+
+    timeBeg = [time]
+    {d residualEnergy opt} = [BuildDict book {} l]
+    # Adding the maxima sub-dictionaries
+    setdict add d '&maximadict' {nmaxima}
+
+    clear book
+#
+# Then we read the optimizations options and perform the Matching Pursuit Decomposition
+#
+    for {m = 0} (m<niter) {m=m+1} {
+	setdict update d
+	mol = [setdict getmax d {'causal'}]
+	if (mol is null) {break}
+	if (mol.coeff2==0) {break}
+	# TODO : treat automatically 'recompute' if necessary
+	setdict optmol d mol opt+'recompute'
+	book+=mol
+	setdict rmmol d mol
+	residualEnergy = <residualEnergy,d.signalEnergy>
+	# Here we could stop if time elapsed is too big or signalEnergy is small enough
+    }
+    timeEnd = [time]
+    deltat = timeEnd-timeBeg 
+    echo $deltat
+    return {d residualEnergy}
+}
+
+
+setproc hmpd {{&book book objCur} {&int niter} {&float freq0min} {&float freq0max} .l} "{{{[<book>=objCur] <nIter> <freq0min> <freq0max> [<signal>=0book] ['-w' {<windowShapes>}={'gauss'}] ['-s' {<windowSizes>}=2^(2:max)] ['-O' {MPoptimizations}]} {Makes <nIter> iterations of a Harmonic Matching Pursuit on <signal> (by default, \
+we analyze the signal '0' of the <book>) and stores the result in <book>. \
+The book will end up with <nIter> molecules in it, except if the pursuit stops before because the residue is zero.\n\
+Compared to the regular 'mpd' command, the only specific arguments are <freq0Min> and <freq0Max> that specifie the range of fundamental frequencies one should consider. Please refer to the help of the 'mpd' command for most arguments.}}}" {
+    timeBeg = [time]
+   {d residualEnergy opt} = [BuildDict book {freq0min freq0max} l]
+   clear book
+#
+# Then we read the optimizations options and perform the Matching Pursuit Decomposition
+#
+    for {m = 0} (m<niter) {m=m+1} {
+	setdict update d
+	mol = [setdict getmax d {'causal'}]
+	if (mol is null) {break}
+	if (mol.coeff2==0) {break}
+	setdict optmol d mol opt
+	book+=mol
+	setdict rmmol d mol
+	residualEnergy = <residualEnergy,d.signalEnergy>
+	# Here we could stop if time elapsed is too big or signalEnergy is small enough
+    }
+    timeEnd = [time]
+    deltat = timeEnd-timeBeg 
+    echo $deltat
+    return {d residualEnergy}
+}
+
+setproc fasthmpd {{&book book objCur} {&int niter} {&int nmaxima} {&float freq0min} {&float freq0max} .l} "{{{[<book>=objCur] <nIter> <nmaxima> <freq0min> <freq0max> [<signal>=0book] ['-w' {<windowShapes>}={'gauss'}] ['-s' {<windowSizes>}=2^(2:max)] ['-O' {MPoptimizations}]} {Makes <nIter> iterations of a Fast Harmonic Matching Pursuit on <signal> (by default, \
+we analyze the signal '0' of the <book>) and stores the result in <book>. \
+The book will end up with <nIter> molecules in it, except if the pursuit stops before because the residue is zero.\n\
+Compared to the 'fastmpd' command, the only specific arguments are <freq0Min> and <freq0Max> that specifie the range of fundamental frequencies one should consider. Please refer to the help of the 'fastmpd' command for most arguments.}}}" {
+    timeBeg = [time]
+   {d residualEnergy opt} = [BuildDict book {freq0min freq0max} l]
+    # Adding the maxima sub-dictionaries
+    setdict add d '&maximadict' {nmaxima}
+    clear book
+#
+# Then we read the optimizations options and perform the Matching Pursuit Decomposition
+#
+    for {m = 0} (m<niter) {m=m+1} {
+	setdict update d
+	mol = [setdict getmax d {'causal'}]
+	if (mol is null) {break}
+	if (mol.coeff2==0) {break}
+	# TODO : treat automatically 'recompute' if necessary
+	setdict optmol d mol opt+'recompute'
+	book+=mol
+	setdict rmmol d mol
+	residualEnergy = <residualEnergy,d.signalEnergy>
+	# Here we could stop if time elapsed is too big or signalEnergy is small enough
+    }
+    timeEnd = [time]
+    deltat = timeEnd-timeBeg 
+    echo $deltat
+    return {d residualEnergy}
+}
+
+
+#" * 'highres' <depthHighRes> corresponds to the computation of the \
+#High Resolution Correlation at a given depth (see the paper \
+# 'Sound Signals Decomposition Using a High Resolution Matching Pursuit', \
+#R. Gribonval et al., Proc. Int. Computer Music Conf. (ICMC'96), \
+#p.293-296. Hong-Kong, août 1996.)\n"
+#" * 'harmo' <freq0Min> <freq0Max> <dimHarmo> corresponds to the \
+#computation of the energy of `harmonic molecules' (see the paper \
+# 'Harmonic Decomposition of Audio Signals with Matching Pursuit', \
+#R. Gribonval and E. Bacry, submitted to IEEE Trans. on Signal Proc., \
+#may 2001). \
+#The range of the fundamental frequency is (<freq0Min> <freq0Max>) \
+#(inclusive), in Hertz, while <dimHarmo> is the number of partials \
+#to consider in the molecule. With the option '-s' the frequency range \
+#is assumed to be in sample coordinates. The option '-O' is only \
+#for development.\n"
+
+
+
+
+#  {"oldmpd",C_Mpd,"{{{[<book>=objCur] [<signal>=(residual|0)] <nIter> [<nMaximas>] \
+#[-w <windowShape>=gauss] [-b <borderType>=pad0] [-o <omin>=2 [<omax>=14]] \
+#[-T <time redundancy>=2] [-F <freq redundancy>=1] [-H <depth>]"
+#" [-K <npartials>] [-O <ortho>] [-s] "
+#"} \
+#"*The following options are available except if we resume a Matching Pursuit:\n\
+#" -b specifies the type of border effect "
+#BorderTypeHelpString
+#".\n\
+# -T and -F determine the time and frequency redundancy factors, that is to say the *time-frequency grid* associated with \
+#different spectrograms at different scales. (look at the full description of these options in the 'stft' package)\n\
+# -H changes the *correlation function* (which is by default a plain inner-product) to a High-resolution correlation \
+#of depth <depth> (a depth of <depth> means that the each atom at a given octave <o> is decomposed at a finer octave <o>-<depth>).}}}"},
+
+
+setproc book_convert_format {{&str oldfilename} {&str newfilename} {&int forceMaxFreqId} {&str decayFilename}} "{{{<oldfilename> <newfilename> <forceMaxFreqId> [<decayFilename>]} {Reads a book in an old format from <oldfilename> using <forceMaxFreqId> and writes it in the new format to <newfilename>. The residualEnergy, as a signal, is written to <decayFileName>.}}}" {
+    book     = [new &book]
+    booknew  = [new &book]
+    decay    = [new &signal]
+    recons   = [new &signal]
+    reconsnew= [new &signal]
+    book readold book oldfilename forceMaxFreqId decay
+    mpr book recons
+    book write book newfilename
+    book read  booknew newfilename
+    mpr booknew reconsnew
+    disp recons reconsnew recons-reconsnew
+}

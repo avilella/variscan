@@ -1,0 +1,54 @@
+############################################################################
+#
+# Demo file for the stft package
+#
+############################################################################
+
+setproc DemoSTFTBonjour {} "{{{} {Demo command that computes and displays the short time fourier transform (using a hamming window) of a voice signal saying the french word 'bonjour'. It also prints the coordinates of the most correlated atom. \
+Warning : This demo uses a lot of memory, thus, if you are running on a \
+Macintosh, you should allocate at least 20Mo to LastWave before running it.}}}" {
+  s1=[new &stft]
+  bonjour=[new &signal]
+  global _scriptDirectory
+  _scriptDir = _scriptDirectory[0]
+  \\sound read bonjour '$_scriptDir/sound/sounds/bonjour.aiff16'
+  stftd s1 bonjour 'hamming' 256 'complex' -F 32 -T 16
+
+  if ([colormap list 'grey'].length) {
+     cm = 'grey'
+  } else {
+     cm = 'color'
+  }
+  disp bonjour s1 -size 700 500 -..2 -cm cm 
+
+
+#  if (s1.type == 'complex') {
+#    echo Best atom is :
+#    stftbest s1 atom
+#    info atom
+#    echo
+    # # best=atom.build
+    # disp sound best
+#  }
+  
+  echo 
+  echo THESE ARE THINGS THAT YOU CAN DO :
+  import args 1 System
+  echo
+  echo 1/ You can try the different mouse cursor modes on the stft images
+  echo    just hitting the 'c' key while the mouse pointer being in an image
+  echo    (there are 2 modes : none, cross-hair).
+  echo 
+  echo 2/ You can zoom any stft : use the left button and drag and drop to zoom 
+  echo    in and the middle one to zoom out.
+  echo    You can change the zoom mode by hitting the 'z' key over any graph. 
+  echo    There are 2 modes : default (just described above), 
+  echo    the y constrained-rect mode (the ordinate are constrained).
+  echo
+  echo 3/ You can make real-time vertical cuts. Hold down the shift key and hold down the middle
+  echo    button a vertical cut will appear. If you move the mouse while holding the button, this
+  echo    cut will be updated in real-time.
+  echo 
+}
+
+help DemoSTFTBonjour

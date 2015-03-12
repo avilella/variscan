@@ -1,0 +1,19 @@
+setproc transpose {{&book bookIn} {&book bookOut} {&float factor} {&int octavemin}} {{"<bookIn> <bookOut> <factor> <octavemin>" "changes the pitch by multiplying it with <factor> only for atoms at a scale >= 2^<octavemin>"}} {
+    book write bookIn  tmp.book
+    book read  bookOut tmp.book
+    nmolecules=bookOut.size
+    for {set ncurr 0} {$ncurr < $nmolecules} {incr ncurr} {
+        mol=bookOut.mol[ncurr]
+        katoms=mol.dim
+        for {kcurr=0} {kcurr<katoms} {incr kcurr} {
+            atom=mol[kcurr]
+            if {atom.windowSize>=2^$octavemin} {
+               atom.phase=frac($factor*atom.phase)
+               atom.freq =$factor*atom.freq
+               atom.chirp=$factor*atom.chirp
+            }
+         }
+     }
+}
+
+

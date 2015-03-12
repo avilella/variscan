@@ -1,0 +1,37 @@
+void initJavaGraphics(JNIEnv *, jobject);
+
+#define JK_F1 0x70
+#define JK_F2 0x71
+#define JK_F3 0x72
+#define JK_F4 0x73
+#define JK_F5 0x74
+#define JK_F6 0x75
+#define JK_F7 0x76
+#define JK_F8 0x77
+#define JK_F9 0x78
+#define JK_F10 0x79
+#define JK_F11 0x7a
+#define JK_F12 0x7b
+#define JK_F1 0x70
+#define JK_F2 0x71
+#define JK_F3 0x72
+#define JK_F4 0x73
+#define JK_F5 0x74
+#define JK_F6 0x75
+#define JK_F7 0x76
+#define JK_F8 0x77
+#define JK_F9 0x78
+#define JK_F10 0x79
+#define JK_F11 0x7a
+#define JK_F12 0x7b
+#define JK_BACKSPACE 0x8
+#define JK_DELETE 0x7f
+#define JK_NEWLINE 0xa
+#define JK_ESCAPE 0x1b
+#define JK_SPACE 0x20
+#define JK_SHIFT 0x10
+#define JK_CONTROL 0x11
+#define JK_LEFT 0x25
+#define JK_RIGHT 0x27
+#define JK_UP 0x26
+#define JK_DOWN 0x28

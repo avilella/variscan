@@ -1,0 +1,19 @@
+# The name of the package
+PACKAGENAME = ansi
+
+#
+# The specific list of Ansi files
+#
+OBJS = $(OBJDIR)ansi_audio.$(OBJEXT)\
+$(OBJDIR)ansi_graphics.$(OBJEXT)\
+$(OBJDIR)ansi_terminal.$(OBJEXT)
+
+#
+# The specific kernel options
+#
+OPTIONS  = $(CCOPTIONS) -I$(INCLUDEDIR) -I../../kernel/include -I../../package_signal/include -I../../package_sound/include -I$(X11INCLUDE)
+
+#
+# The specific dependance
+#
+$(OBJS) $(MULTIDEP) ../../kernel/include/*.h

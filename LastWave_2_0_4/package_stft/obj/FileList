@@ -1,0 +1,28 @@
+# The name of the package
+PACKAGENAME = stft
+
+
+#
+# The specific list of Short Time Fourier Transform package files
+#
+OBJS = $(OBJDIR)stft_tabulate.$(OBJEXT)\
+$(OBJDIR)stft_window.$(OBJEXT)\
+$(OBJDIR)stft_border.$(OBJEXT)\
+$(OBJDIR)stft.$(OBJEXT)\
+$(OBJDIR)stft_complex.$(OBJEXT)\
+$(OBJDIR)stft_energy.$(OBJEXT)\
+$(OBJDIR)stft_harmo.$(OBJEXT)\
+$(OBJDIR)stft_getbest.$(OBJEXT)\
+$(OBJDIR)stft_graph.$(OBJEXT)\
+$(OBJDIR)stft_file.$(OBJEXT)\
+$(OBJDIR)stft_package.$(OBJEXT)
+#
+# The specific STFT options
+#
+OPTIONS  = $(CCOPTIONS) -I$(INCLUDEDIR) -I../../kernel/include -I../../unix/include -I$(X11INCLUDE)  -I../../package_signal/include -I../../package_image/include
+
+#
+# The specific dependance
+#
+$(OBJS) $(MULTIDEP) ../../kernel/include/*.h ../../unix/include/*.h ../../package_signal/include/*.h ../../package_image/include/*.h
+$(OBJS) $(MULTIDEP)  $(INCLUDEDIR)/*.h

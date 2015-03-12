@@ -1,0 +1,62 @@
+#Config file for the MRA analysis running LastWave
+
+#This options can be overriden by specifying some or all of them in
+#the call to the perl script. For example:
+
+#perl runMRA.PLS input_file.vs input_config_file.lw.conf -stat_col 12
+
+#CHOSEN COLUMNS
+
+#stat_col - this is the column number in the input_file.vs (the output
+#of variscan) corresponding to the statistic to analyse in the MRA
+
+stat_col = 12
+
+#ref_col - this is the column number in the input_file.vs (the output
+of variscan) corresponding to the reference positions to use when
+analysing in the MRA. This is usually 3.
+
+ref_col = 3
+
+
+#MRA SUBDIVISIONS 
+
+#The MRA analysis divides the input signal in different
+#components. The subdivisions values define this groupings.
+#If you want 4 subdivisions, set sub_a < sub_b < sub_c.
+#If you want 3 subdivisions, set sub_a = sub_b < sub_c.
+#If you want 2 subdivisions, set sub_a = sub_b = sub_c.
+
+#sub_a - the first subdivision.
+#Frequency component from (1 to sub_a(
+
+sub_a = 6
+
+#sub_b - the second subdivision. 
+#Frequency component from (sub_a to sub_b(
+
+sub_b = 9
+
+#sub_c - the third subdivision. 
+#Frequency component from (sub_b to sub_c(
+
+sub_c = 12
+
+#The last grouping will be (sub_c - num_levels), i.e., 
+
+#LASTWAVE DIRECTORIES
+#The place where LastWave is in your system
+
+lwpath = $HOME/LastWave_2_0_4
+lwsourcedir = $HOME/LastWave_2_0_4/scripts
+lwbinary = $HOME/LastWave_2_0_4/bin/linux/lw
+
+#FILTER CHOICE 
+#This is the mother wavelet that will be used for the
+#analysis. This is usually Daubechies 'D4.o'.
+#(See LastWave_2_0_4/scripts/wtrans1d/filters/ directory)
+
+filter = D4.o
+
+#End
+

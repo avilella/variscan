@@ -1,0 +1,17 @@
+
+
+
+All the instructions for installing and using LastWave can 
+be found in the LastWave documentation or (a shorter version) in the files 
+INSTALL_XXX (where XXX is the type of system you have).
+
+On the LastWave web site you can download the documentation and the reference manual
+either in a postscript format or in a pdf (acrobat) format. 
+Both have been generated using Latex.
+
+The best thing you should do is to print the LastWaveDocumentation.ps file 
+and read the first pages which will tell you about the Copyright of LastWave 
+and about how to install LastWave on your computer.
+
+If you want to see some tutorial demos of LastWave, just run LastWave, type 'Demo' and follow
+the instructions.

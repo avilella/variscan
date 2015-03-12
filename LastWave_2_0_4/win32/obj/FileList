@@ -1,0 +1,20 @@
+# The name of the package
+PACKAGENAME = win32
+
+#
+# The specific list of Win32 files
+#
+OBJS = $(OBJDIR)win32_audio.$(OBJEXT)\
+$(OBJDIR)win32_system.$(OBJEXT)\
+$(OBJDIR)win32_graphics.$(OBJEXT)\
+$(OBJDIR)win32_terminal.$(OBJEXT)
+
+#
+# The specific kernel options
+#
+OPTIONS  = $(CCOPTIONS) -I$(INCLUDEDIR) -I../../kernel/include -I../../package_signal/include -I../../package_sound/include -I$(X11INCLUDE)
+
+#
+# The specific dependance
+#
+$(OBJS) $(MULTIDEP) ../../kernel/include/*.h

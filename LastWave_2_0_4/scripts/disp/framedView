@@ -1,0 +1,558 @@
+
+#..........................................................................
+#                                                                         
+#      L a s t W a v e    P a c k a g e 'disp' 2.0.3
+#
+#      Author Emmanuel Bacry                                               
+#                                                                          
+#..........................................................................
+
+
+#
+# Some default values for the FramedView class
+#
+
+# The default margin values between the border of the FramedView and the axis
+gclass.FramedView.default.viewMargin={60 20 25 50}
+
+# The default view background color
+gclass.FramedView.default.viewbg='white'
+
+# The default box background color
+gclass.FramedView.default.boxbg='white'
+
+# The default margin between the axis and the View (same value in all directions)
+gclass.FramedView.default.axisMargin=6
+
+# A flag to know whether the ticks of the axis are in or out
+gclass.FramedView.default.ticksIn=0
+
+# A flag to know whether it should draw axis (=> 2 axis are drawn)
+gclass.FramedView.default.axis=1
+
+# A flag to know whether it should frame the view with axis (=> 4 axis are drawn)
+gclass.FramedView.default.axisFrame=0
+
+# Default value to know whether the x or the y axis should be reversed
+gclass.FramedView.default.reverse='y'
+
+# Default background color
+gclass.FramedView.default.bg="BG"
+
+# Default font for labels
+gclass.FramedView.default.labelFont="10"
+
+# Default font for title
+if ([font exist "10-bold"]) {
+  gclass.FramedView.default.titleFont="10-bold"
+} else {
+  gclass.FramedView.default.titleFont="10"
+}
+
+# Default font for axis
+gclass.FramedView.default.axisFont=[font default]
+
+
+#
+# Try These values you might like them better
+#
+#gclass.FramedView.default.axisMargin=0
+#gclass.FramedView.default.ticksIn=1
+#gclass.FramedView.default.axis=1
+#gclass.FramedView.default.axisFrame=1
+#gclass.FramedView.default.bg='darkgrey'
+#gclass.FramedView.default.viewbg='grey'
+#gclass.FramedView.default.boxbg='darkgrey'
+
+
+#
+#
+# Now we create the FramedView class 
+#
+#   it consists basically in an EView along with axis and a text line at the bottom
+#
+# 
+
+
+#
+# Answering the messages for FramedViews 
+#
+setproc _GFramedViewMsge {obj message .l} {
+
+  # The help 
+  if (obj == "?") {
+    return "{{{clear} {Clears the FramedView.}}}"
+  }
+
+  id=[msge $obj id]
+
+  if (message == "init") {
+    global gclass.FramedView.default
+    
+    # Set all the default fields of the FramedView
+    {left top right bottom}=default.viewMargin
+    setg $obj -mn 1 1 -margin left top right bottom -axisMargin default.axisMargin -bg default.bg -axis default.axis -ticksIn default.ticksIn -axisFrame default.ticksIn -axisFont default.axisFont 
+    
+    # Add the EView and reverse it if necessary
+    msge $obj add 'view' EView -grid 1 1 1 1 -bg default.viewbg
+    setg $obj -reverse default.reverse
+    
+    # Add the box at the bottom of the FramedView and sets its vertical size
+    msge $obj add 'box' Box -bg default.boxbg
+    {asc desc inter}=[font info [setg ${obj}.box -font]]
+    setg ${obj}.box -size 1 asc+desc
+    
+    # Sets the default size of thr FramedView
+    setg $obj -size 200 200
+    setv gclass.FramedView.${id}.n 0 -l 1
+
+    return 1
+  }
+  
+  if (message == "delete") {
+    var delete 1 gclass.FramedView.$id
+    return 1
+  }
+    
+  if (message == "deleteNotify") {
+    if (l[0] == "view" || l[0] == "box") {
+      return 0
+    }
+    return 1
+  }  
+  
+  if (message == "clear") {
+    setv gclass.FramedView.${id}.n 0 -l 1
+    msge ${obj}.view remove '*'
+    return 1
+  } 
+}
+
+
+ 
+#
+# Setting or Getting the fields of FramedViews
+#
+setproc _GFramedViewSet {obj field .l} {
+
+  if (obj == "?") {
+    return "{{{graph <exprString>} {Sets the graph corresponding to <exprString> that will be displayed in the FramedView.}} \
+{{graph+ <exprString>} {Adds the graph corresponding to expression <exprString> to be displayed in the FramedView on top of the other ones.}} \
+{{graph1 <exprString>} {Same as graph but do not update the boundaries of the FramedView.}} \
+{{graph1+ <exprString>} {Same as graph+ but do not update the boundaries of the FramedView.}} \
+{{boundNoSync <xMin> <xMax> <yMin> <yMax>} {Just send the message to the '-bound' field of the View class of the \
+EView inside the FramedView. It thus changes the boundaries without synchronization of other views.}} \
+{{bound [<xMin> <xMax> <yMin> <yMax>]} {Just send the message to the '-bound' field of the EView inside the FramedView.}} \
+{{string [<string>]} {Works exactly the same way as '-string' field for the Box inside the FramedView.}} \
+{{axisFrame [<flagOn>]} {Sets/Gets the flag that allows that four axis (instead of 2) are displayed around the view.}} \
+{{ticksIn [<flagOn>]} {Sets/Gets the flag that allows the ticks on the axis to be inside the view instead of outside.}} \
+{{axis [<flagOn>]} {Sets/Gets the flag that allows the axis to be displayed or not.}} \
+{{xLabel [<string>]} {Sets/Gets the label string for the x-axis. Let us note that it creates a Text object named 'xlabel' that you can adress/move direcly.}} \
+{{yLabel [<string>]} {Sets/Gets the label string for the y-axis. Let us note that it creates a Text object named 'ylabel' that you can adress/move direcly.}} \
+{{title [<string>]} {Sets/Gets the title string. Let us note that it creates a Text object named 'title' that you can adress/move direcly.}} \
+{{axisFont [<font>]} {Sets/Gets the font used for axis.}} \
+{{reverse [x | y | xy | none]} {Gets/Sets the state that indicates which axis are reversed compared to the regular global axis. \
+If it is 'y' (the default FramedView value at initialization) then the y-axis will be going from bottom of the window to top, if 'x' the x-axis \
+will be going from right to left, if 'xy' both will be combined and if 'none' the y-axis will be top to bottom and the x-axis left to right \
+(as for GLists).}}}"
+  }
+
+  # Get the fields structure associated to the FramedView
+  id=[msge $obj id]
+  import args 1 &array `gclass.FramedView.$id struct`
+
+  #
+  # Some basic field behavior
+  #
+  if ((field == "reverse") || (field == "ticksIn") || (field == "axisFont") || (field == "axisMargin") || (field == "axisFrame")  || (field == "axis")) {
+  
+    # Get case
+    if (l.length == 0) {
+      return struct.$field
+    }    
+  
+    # Set case
+    if ([var exist struct.$field]) {
+      if (struct.$field==l[0]) {return -1}
+    }
+
+    struct.$field=l[0]
+
+    if ("reverse" == field) {setg ${obj}.view -reverse l[0]}
+
+    return 1
+  }  
+
+  #
+  # The 'xLabel' field
+  #
+  if (field == "xLabel") {
+    
+    # Get case : just check whether the gobject xlabel exists
+    if (l.length==0) {
+      if ([msge ${obj}.xlabel exist]) {
+        return [setg ${obj}.xlabel -string]
+      } else {
+        return ""
+      }
+    }    
+    
+    # Set case : create the xlabel gobject if it does not exist yet
+    if (![msge ${obj}.xlabel exist]) {
+      if (l[0]=="") {return -1}
+      import args 1 `gclass.FramedView.default.labelFont font`
+      msge $obj add 'xlabel' Text -font font
+      # Sets the position of the label
+      {m1 m2 m3 m4}=[setg ${obj} -margin]
+      {w h}=[setg ${obj} -size]
+      if (struct.reverse == 'y') {
+        if (struct.ticksIn == 0) {
+          setg ${obj}.xlabel -posMode 'right' 'up' -pos w-m3-30 h-m4+22
+        } else {
+          setg ${obj}.xlabel -posMode right up -pos w-m3-30 h-m4+4
+        }
+      } elseif (struct.reverse == 'xy') {
+        setg ${obj}.xlabel -posMode 'left' 'up' -pos m1 h-m4+22
+      } elseif (struct.reverse == 'none') {
+        setg ${obj}.xlabel -posMode 'right' 'down' -pos w-m3 m2-12
+      } else {
+        setg ${obj}.xlabel -posMode 'left' 'down' -pos m1 m2-12
+      }      
+    }
+    setg ${obj}.xlabel -string l[0]
+    return -1
+  }    
+  
+  
+  #
+  # The 'yLabel' field
+  #
+  if (field == "yLabel") {
+    
+    # Get case : just check whether the gobject ylabel exists
+    if (l.length==0) {
+      if ([msge ${obj}.ylabel exist]) {
+        return [setg ${obj}.ylabel -string]
+      } else {
+        return ""
+      }
+    }    
+    
+    # Set case : create the ylabel gobject if it does not exist yet
+    if (![msge ${obj}.ylabel exist]) {
+      if (l[0]=="") {return -1}
+      import args 1 `gclass.FramedView.default.labelFont font`
+      msge $obj add 'ylabel' Text -font font
+      # Sets the position of the label
+      {m1 m2 m3 m4}=[setg ${obj} -margin]
+      {w h}=[setg ${obj} -size]
+      if (struct.reverse == 'y') {
+        if (struct.ticksIn == 0) {
+          setg ${obj}.ylabel -posMode 'right' 'up' -pos m1-20 m2+10
+        } else {
+          setg ${obj}.ylabel -posMode 'right' 'up' -pos m1-15 m2+10
+        }
+      } elseif (struct.reverse == 'xy') {
+        setg ${obj}.ylabel -posMode 'left' 'up' -pos w-m3+20 m2
+      } elseif (struct.reverse == 'none') {
+        setg ${obj}.ylabel -posMode 'right' 'down' -pos m1-20 h-m4
+      } else {
+        setg ${obj}.ylabel -posMode 'left' 'down' -pos w-m3+20 h-m4
+      }      
+    }
+    setg ${obj}.ylabel -string l[0]
+    return -1
+  }    
+  
+  
+  #
+  # The 'title' field
+  #
+  if (field == "title") {
+    
+    # Get case : just check whether the gobject title exists
+    if (l.length == 0) {
+      if ([msge ${obj}.title exist]) {
+        return [setg ${obj}.title -string]
+      } else {
+        return ""
+      }
+    }    
+    
+    # Set case : create the title gobject if it does not exist yet
+    if (![msge ${obj}.title exist]) {
+      if (l[0]=="") {return -1}
+      import args 1 `gclass.FramedView.default.titleFont font`
+      msge $obj add 'title' Text -font font
+      # Sets the position of the title
+      {w h}=[setg ${obj} -size]
+      {m1 m2 m3 m4}=[setg ${obj} -margin]
+      if ((struct.reverse == 'y') || (struct.reverse == 'xy')) {
+        setg ${obj}.title -posMode 'middle' 'down' -pos (w-m1-m3)/2+m1 15
+      } else {
+        setg ${obj}.title -posMode 'middle' 'up' -pos (w-m1-m3)/2+m1 h-m4+10
+      }
+    }
+    setg ${obj}.title -string l[0]
+    return -1
+  }    
+  
+
+  # 
+  # The graph, graph+, graph1 and graph1+ fields
+  #
+  if ((field == "graph") || (field == "graph+") || (field == "graph1") || (field == "graph1+")) {
+    if ((field == 'graph') || (field == 'graph1')) {
+      msge $obj clear
+    }
+
+    s=l[0]
+      type = type(s)
+      if (type == '&range') {
+        s = <s>
+        type = type(s)
+      }
+
+      class=[gclass list '*' '*' type]
+      if (class.length == 0) {errorf "Do not know how to display '%s' type structures" type}
+      class=class[0]
+      if (l.length == 1) {name =struct.n+1} else {name=l[1]}
+
+      # Should we put axis and reverse the view and margins
+      type1=type[1:]
+      if ([var exist 1 disp.$type1]) {
+        import args 1 `disp.$type1 def`
+        if ([var exist def.axis]) {setg $obj -axis def.axis}
+        if ([var exist def.margin]) {
+          if ([msge ${obj}.^ class 'WindowDisp'] && ([setg ${obj}.^ -type] == type)) {
+             {l t r b}=def.margin 
+             setg $obj -margin l t r b
+          }
+        }
+        if ([var exist def.reverse]) {setg $obj -reverse def.reverse}
+      }     
+
+      setg ${obj}.view -add name class -graph s
+
+      struct.n+=1
+    
+    
+    if ((field == "graph") || (field == "graph+")) {
+      setg ${obj}.view -bound '?' '?' '?' '?'
+      return 1
+    } else {return -1}
+  }
+  
+  
+  #
+  # The size and asize fields (we must reposition the box and the labels and the titles)
+  #
+  if ((field == 'asize') || (field == 'size')) {
+  
+    # Get case : just let the regular methods dealing with it
+    if (l.length==0) {return}
+    
+    # Set case 
+    # We first need to remember the old size 
+    {ow oh}=[setg ${obj} -size]
+    
+    # Then perform the size changement
+    setg Grid:$obj -$field l[0] l[1]
+    
+    # Get the new size
+    {w h}=[setg $obj -size]
+
+    # Then we have to change the box size
+    {bw bh}=[setg ${obj}.box -size]
+    setg ${obj}.box -pos 0 h-bh -size w bh
+    
+    {m1 m2 m3 m4}=[setg ${obj} -margin]
+
+    # Then we have to change the xlabel position if there is any
+    if ([msge ${obj}.xlabel exist]) {
+      {ox oy}=[setg ${obj}.xlabel -pos]
+      if ((struct.reverse == "x") || (struct.reverse == "none")) {
+        y=oy
+      } else {
+        y = h-oh+oy
+      }
+      setg ${obj}.xlabel -pos (w-m3-m1)*(ox-m1)/(ow-m3-m1)+m1 y
+    }
+
+    # Then we have to change the ylabel position if there is any
+    if ([msge ${obj}.ylabel exist]) {
+      {ox oy}=[setg ${obj}.ylabel -pos]
+      if ((struct.reverse == "x") || (struct.reverse == "xy")) {
+        x = ox-ow+w 
+      } else {
+        x =ox
+      }
+      setg ${obj}.ylabel -pos x (oy-m2)*(h-m2-m4)/(oh-m2-m4)+m2
+      
+    }
+
+    # Then we have to change the title position if there is any
+    if ([msge ${obj}.title exist]) {
+      {ox oy}=[setg ${obj}.title -pos]
+      if ((struct.reverse == "y") || (struct.reverse == "xy")) {
+        y=oy
+      } else {
+        y = (oy-m2)*(h-m2-m4)/(oh-m2-m4)+m2
+      }
+      setg ${obj}.title -pos (w-m1-m3)/2+m1 y
+    }
+
+    return -1
+  }
+
+  #
+  # The margin field (we must reposition the box and the labels and the titles)
+  #
+  if (field == "margin") {
+
+    # Get case : just let the regular methods dealing with it
+    if (l.length==0) {return}
+
+    # Save the previous margins
+    {om1 om2 om3 om4}=[setg ${obj} -margin]
+    {w h}=[setg $obj -size]
+    
+    # Perform the margin changement
+    {m1 m2 m3 m4}=l
+    setg Grid:$obj -margin m1 m2 m3 m4
+
+    # Then we have to change the xlabel position if there is any
+    if ([msge ${obj}.xlabel exist]) {
+      {ox oy}=[setg ${obj}.xlabel -pos]
+      if ((struct.reverse == "x") || (struct.reverse == "none")) {
+        setg ${obj}.xlabel -pos (w-m3-m1)*(ox-om1)/(w-om3-om1)+m1 oy-om2+m2
+      } else {
+        setg ${obj}.xlabel -pos (w-m3-m1)*(ox-om1)/(w-om3-om1)+m1 oy-m4+om4
+      }
+   }
+
+    # Then we have to change the ylabel position if there is any
+    if ([msge ${obj}.ylabel exist]) {
+      {ox oy}=[setg ${obj}.ylabel -pos]
+      if ((struct.reverse == "x") || (struct.reverse == "xy")) {
+        x = ox+om3-m3 
+      } else {
+         x = ox-om1+m1
+      }
+      setg ${obj}.ylabel -pos x (oy-om2)*(h-m2-m4)/(h-om2-om4)+m2
+    }
+
+    # Then we have to change the title position if there is any
+    if ([msge ${obj}.title exist]) {
+      {ox oy}=[setg ${obj}.title -pos]
+      {w h}=[setg $obj -size]
+      if ((struct.reverse == "y") || (struct.reverse == "xy")) {
+        y = oy-om2+m2
+      } else {
+        y = (oy-om2)*(h-m2-m4)/(h-om2-om4)+m2
+      }
+      setg ${obj}.title -pos (w-m1-m3)/2+m1 y
+    }
+
+    return -1
+  }
+  #
+  # The boundNoSync field (just call the same EView field)
+  #
+  if (field == 'boundNoSync') {
+    if (l.length==0) {return [setg View:${obj}.view -bound]}
+    
+    # We first get the gobjects that must be yRescaled    
+    listObjResc=""
+    listObj=[msge ${obj}.view list '*']
+    foreach o listObj {
+      if ([setg ${obj}.view.$o -yRescaled]==1) {listObjResc += " "+ '${obj}.view.$o'}
+    }
+    
+    # Hide them
+    if (listObjResc!="") {
+      setg $listObjResc -hide 1
+    }
+
+    # Execute the command
+    setg View:${obj}.view -bound l[0] l[1] l[2] l[3]
+
+    # Show them again
+    if (listObjResc!="") {
+      setg $listObjResc -hide 0
+    }
+
+    # And rescale them
+    {a b c d}=[setg View:${obj}.view -bound]
+    foreach o listObjResc {
+      {a1 b1 c1 d1}=[setg $o -rect]
+      if (d-c > 0) {
+        setg $o -pos a1 c -size c1 d-c
+      } else {
+        setg $o -pos a1 d -size c1 c-d
+      }
+    }
+    
+    return 1
+  }  
+  
+  #
+  # The bound field (just call the same EView field)
+  #
+  if (field == "bound") {
+    if (l.length == 0) {return [setg View:${obj}.view -bound]}
+    {x0 x1 y0 y1}=l
+    setg ${obj}.view -bound x0 x1 y0 y1
+    return 1
+  }  
+  
+  #
+  # The string field (just call the same Box field)
+  #  
+  if (field == "string") {
+    # We let the box handling the message
+    if (l.length == 0) {return [setg ${obj}.box -string]}
+    setg ${obj}.box -string l[0]
+    return -1
+  } 
+}
+
+
+#
+# The general Drawing method
+#
+setproc _GFramedViewDraw {obj .l} {
+
+  id=[msge $obj id]
+  global `gclass.FramedView.$id struct`
+  
+  msge Grid:${obj} draw -g l[0] l[1] l[2] l[3]
+
+  # Now we must draw the axis
+  if (all(l==[setg ${obj}.box -rect])) {return}   
+  l=[setg ${obj}.view -rect]
+  {x y w h}=l
+
+  l=[setg ${obj}.view -bound]
+  {xb yb wb hb}=l
+  
+  if (struct.axis) {
+    if (struct.axisFrame && struct.ticksIn) {  
+      draw axis $obj x y w h xb yb wb hb -in -frame -margin struct.axisMargin -reverse struct.reverse -font struct.axisFont
+    } elseif (struct.axisFrame) {  
+      draw axis $obj x y w h xb yb wb hb -frame -margin struct.axisMargin -reverse struct.reverse -font struct.axisFont
+    } elseif (struct.ticksIn) {  
+      draw axis $obj x y w h xb yb wb hb -in -margin struct.axisMargin -reverse struct.reverse  -font struct.axisFont
+    } else {
+      draw axis $obj x y w h xb yb wb hb -margin struct.axisMargin -reverse struct.reverse -font struct.axisFont
+    }
+  }
+}
+
+gclass new FramedView Grid %_GFramedViewSet %_GFramedViewMsge %_GFramedViewDraw "Graphic Class to display a View (actually \
+it uses EViews) with axis and a text box at the bottom. \
+It is used in WindowDisp and thus by the 'disp' function."
+proc delete %_GFramedViewSet %_GFramedViewMsge %_GFramedViewDraw
+
+
+

@@ -1,0 +1,161 @@
+#..........................................................................
+#                                                                         
+#      L a s t W a v e    P a c k a g e 'terminal' 2.0
+#
+#      Author Emmanuel Bacry                                               
+#      
+#..........................................................................
+
+#
+# The different keys depending on the terminal
+# You can change the folowing bindings
+#
+# WARNING FOR UNIX USERS ONLY : 
+#           if you are running on a unix computer the only 
+#           special key names you can use are 'esc' and 'tab'
+#           Thus if for instance you want to assign 'f1' to 
+#           the action of performing file completion, you must
+#           first find out what the key sequences is associated to 'f1'
+#           by your terminal (for that purpose just type 'f1' in the terminal window
+#           and it will give you the associated
+#           key sequence) and then do _filec='the_key_sequence'.
+#
+#           Let us note that this is true only for terminal bindings.
+#           If you want to assign 'f1' with a binding in a lastwave graphic window
+#           which is not the terminal you must use the symbolic name 'f1'
+#
+
+
+# Case You are on a mac
+if (System == 'mac') {
+ _left='left'
+  _right='right'
+  _begin='{{opt left}}'
+  _end='{{opt right}}'
+  _up='up'
+  _down='down'
+  _erasel='{{opt delete}}'
+  _uphist='tab'
+  _downhist='{{shift tab}}'
+  _filec='{{shift esc}}'
+  _help='esc esc'
+  
+# Case You Are on a Unix xterm  
+} elseif (Term == 'xterm' || Term == 'vt100') {
+ _left='esc [ D'
+ _right='esc [ C'
+ _up='esc [ A'
+ _down='esc [ B'
+#   _left='0x2'
+#   _right='0x6'
+#   _up='0x10'
+#   _down='0xe'
+  _uphist='tab'
+  _begin='0x1'
+  _end='0x5'
+  _downhist='esc t'
+  _erasel='0x15'  
+  _filec='esc f'
+  _help='esc esc'
+  
+} else {
+  echo `***** WARNING : Unknown terminal '$Term'`
+  echo `***** Does not know some keycodes (look in the scripts/basic/keys file)`
+ _left='esc [ D'
+ _right='esc [ C'
+ _up='esc [ A'
+ _down='esc [ B'
+#   _left='0x2'
+#   _right='0x6'
+#   _up='0x10'
+#   _down='0xe'
+  _uphist='tab'
+  _begin='0x1'
+  _end='0x5'
+  _downhist='esc t'
+  _erasel='0x15'  
+  _filec='esc f'
+  _help='esc esc'  
+}
+
+
+
+#
+# Simple command that displays the keys used for terminal bindings
+#
+
+setproc HelpTerm {} "{{{} {Command that tells you what the binding keys are for command line editing capabilities}}}" {
+
+  echo
+  echo ********************************************************************************************
+  echo ***
+  echo *** This is a sum up of command line editing capabilities : 
+  echo ***
+  echo `***      # You can change any of the following binding keys`
+  echo `***      # by simply changing the configuration file`
+  echo `***      # 'scripts/terminal/keys'`
+  echo ***
+  if [var exist 1 _left] {
+  global _left
+  echo `***   - '$_left' key : allows to move the cursor backward`
+  echo ***
+  }
+  if [var exist 1 _right] {
+  global _right
+  echo `***   - '$_right' key : allows to move the cursor backward`
+  echo ***
+  }
+  if [var exist 1 _begin] {
+  global _begin
+  echo `***   - '$_begin' key : allows to move the cursor at the begining of the line`
+  echo ***
+  }
+  if [var exist 1 _end] {
+  global _end
+  echo `***   - '$_end' key : allows to move the cursor at the end of the line`
+  echo ***
+  }
+  if [var exist 1 _erasel] {
+  global _erasel
+  echo `***   - '$_erasel' key : allows to delete the whole line`
+  echo ***
+  }
+  if [var exist 1 _up] {
+  global _up
+  echo `***   - '$_up' key : allows to move upward in the command line history`
+  echo ***
+  }
+  if [var exist 1 _down] {
+  global _down
+  echo `***   - '$_down' key : allows to move downward in the command line history`
+  echo ***
+  }
+  if [var exist 1 _uphist] {
+  global _uphist
+  echo `***   - '$_uphist' key : performs line completion according to the command line history.`
+  echo `***      Each time you hit that key it goes further back in the history.`
+  echo ***
+  }
+  if [var exist 1 _downhist] {
+  global _downhist
+  echo `***   - '$_downhist' key : performs line completion according to the command line history.`
+  echo `***      Each time you hit that key it goes further forward in the history.`
+  if [var exist 1 _uphist] {
+  echo `***      (It reverses the action of the last key described).`
+  }
+  echo ***
+  }
+  if [var exist 1 _help] {
+  global _help
+  echo `***   - '$_help' key : If you did not completed the name of the command or of a field it suggests`
+  echo `***      some completion. Moreover if it is completed, it prints an appropriate one line help.`
+  echo ***
+  }
+  if [var exist 1 _filec] {
+  global _filec
+  echo `***   - '$_filec' key : If the cursor is at the end of a string (no space) it performs`
+  echo `***     file completion`
+  }
+  echo 
+}
+

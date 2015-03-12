@@ -1,0 +1,58 @@
+############################################################################
+#
+# Demo file for the wtrans1d package
+#
+############################################################################
+
+
+setproc DemoWtrans1dFrac {} "{{{} {Demo command that computes the continuous wavelet transform of a Devil Staircase (with noise). \
+It displays the signal and its wavelet transform. It teaches you how to use the mouse.}}}" {
+  StartDemo DemoWtrans1dFrac
+}
+
+setproc _DemoWtrans1dFrac0 {} {
+
+  global objCur a
+ 
+  # Set the current wavelet transform to be a
+  a
+  
+  # Generate the signal    
+  ucantor 0 8000 .334 .5 .332 0 .334 .5 
+  0=prim(0a)+Grand*.01
+  
+  # Compute the wavelet transform
+  cwtd 1.5 7 10 'g1'
+  
+  # Display the signal, the wavelet transform
+  disp 0 a
+  
+  import args 1 System
+  
+    printf "\nIf you want to learn how these graphs were generated look at the procedure \
+'_DemoWtrans1dFrac0' in the file 'scripts/wtrans1d/DemoWtrans1d'\n"
+
+}
+
+
+setproc _DemoWtrans1dFrac1 {} {
+printf "In order to perform a horizontal cut of the wavelet transform, just press the left button while holding the shift key on \
+the image of the wavelet transform. \n\
+Vertical cuts are obtained through the middle button (and shift) or the right one (and shift) for a log-cut. \n\
+You can type 'b' while pointing on the wavelet transform to display short help on these actions."
+}
+
+setproc _DemoWtrans1dFrac2 {} {
+printf "You can try the different mouse cursor modes on the wavelet transform by just hitting the 'c' key while the \
+mouse pointer being in the wavelet transform graph (there are 2 modes : none, cross-hair)."
+}
+
+setproc _DemoWtrans1dFrac3 {} {
+printf "You can zoom any wavelet transform : use the left button and drag and drop \
+for zooming in and use the middle button for zooming out. \n\
+You can change the zoom mode by hitting the 'z' key over any extrema representation. \n\
+There are 3 modes : default (just described above, it is y-constrained), 
+regular (as for signals : use left or right for zooming in)."
+}
+
+help DemoWtrans1dFrac

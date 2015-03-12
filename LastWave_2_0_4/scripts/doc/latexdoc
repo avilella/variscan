@@ -1,0 +1,385 @@
+
+#..........................................................................
+#                                                                         
+#      L a s t W a v e   2.0 
+#
+#      Author Emmanuel Bacry                                               
+#      
+#..........................................................................
+
+
+#
+# Just source this file in order to generate the a doc.tex latex file
+#
+
+# Replace a substring by another one
+
+
+setproc _ReplaceStrAll {str} {
+  l = [str match str '\\\'']
+  str[l] := {'\''}
+  l = [str match str '\\']
+  str[l] := {'{\\backslash}'}
+  l = [str match str '!\$!']
+  str[l] := {'\\\$'}
+  l = [str match str '&']
+  str[l] := {'\\&'}
+  l = [str match str '<']
+  str[l] := {'\$<\$'}
+  l = [str match str '>']
+  str[l] := {'\$>\$'}
+  l = [str match str '!^!']
+  str[l] := {'\\^\\ '}
+  l = [str match str '_']
+  str[l] := {'\\_'}
+  l = [str match str '!|!']
+  str[l] := {'\$|\$'}
+  l = [str match str '!%!']
+  str[l] := {'\\%'}
+  l = [str substr str '{']
+  str[l] := {'\\{'}
+  l = [str substr str '}']
+  str[l] := {'\\}'}
+  l = [str match str '![!']
+  str[l] := {'{\\lbrack}'}
+  l = [str match str '!]!']
+  str[l] := {'{\\rbrack}'}
+  l = [str match str '!#!']
+  str[l] := {'{\\#}'}
+  
+  return str
+}
+
+    
+#
+# Prints the help page for the tex file
+#
+
+setproc _TEXPrint1Help {name .help} {
+  
+  flagSetg=0
+  flagMsge=0
+
+  if (help.length == 0) {
+    ### Let's get the help !
+    help=[proc help name]
+  } else {
+    class=help[0]
+    help=help[1]
+    if (name == 'setg') {flagSetg=1}
+    if (name == 'msge') {flagMsge=1}
+    if (name == '') {return}
+  }
+  
+  ### Number of actions ?
+  nActions=help.length
+
+  ### Case the command does not have any help
+  if (help.length==0) {return}
+
+  ### Then we print all the usages and descriptions
+  help=[listv sort help %{arg1 arg2}`return 2*(arg1[0]>arg2[0])-1`]
+
+  name1=[_ReplaceStrAll name]
+  echo \\noindent
+  if ([proc slist name].length!=0) {
+    printf "\$\\bullet\$ %s" "\\texttt{{\\bf "+name1+"}} (in file \\texttt{"+[proc file '$name']+"})\n"
+  } else {
+    printf "\$\\bullet\$ %s" "\\texttt{{\\bf "+name1+"}}\n"
+  }
+  
+  
+  if (help.length==1) {flagN=0} else {flagN=1}
+
+  if (flagN) {echo \\begin\{itemize\}}
+  
+  foreach help1 help {
+    usage=help1[0]
+    if ([str match usage '{*}'].length!=0) {usage = usage[1:@>-1]}
+    usage1=[_ReplaceStrAll usage]
+    description=help1[1]
+    if ([str match description '{*}'].length!=0) {description = description[1:@>-1]}
+    description1=[_ReplaceStrAll description]
+
+    if (flagN) {printf "%s" "\\item \\texttt{{\\bf $name1}} "}
+    
+    # First we print the usage
+    if (flagSetg) {
+      printf "%s" "\\texttt{*${class}* -"+usage1+"} \n\n"
+    } elseif (flagMsge) {
+      printf "%s" "\\texttt{*${class}* "+usage1+"} \n\n"
+    } else {
+      printf "%s" "\\texttt{"+usage1+"} \n\n"
+    }
+
+    # Then the help
+    echo \n\\noindent
+    if ([str substr description1 '\n'].length==0) {
+       echo $description1
+    } else {
+      l = [str substr description1 '\n']
+      b = 0
+      foreach r l {
+        if (type(r) == '&num') {
+          e = r
+        } else {
+          e = r.last
+        }
+        s = description1[b:!e]
+        echo $s
+        b = e+1
+        echo \\\\
+      }
+    }
+  }
+  
+  if ($flagN) {echo \\end\{itemize\}} else {echo \\vspace\{.2cm\}}
+  
+  echo \n\n
+  
+}
+
+
+
+
+#
+# Creates a web page 
+#
+
+setproc _texdoc {{package {'kernel' 'disp' 'misc' 'terminal' 'signal' 'image'}}} \
+    "{{{<packageListv>} {Generate a list of all the commands in Latex}}}" \
+{
+   global _scriptDirectory
+   _scriptDir = _scriptDirectory[0]
+  
+   echo \\documentclass[11pt]\{book\}
+   echo \\usepackage\{makeidx\}
+   echo \\makeindex
+   echo %\\input\{def\}
+   echo \\begin\{document\}
+   echo %\\input\{cover\}
+   echo %\\newpage
+   echo \\part*\{\}
+   echo \\tableofcontents
+   echo \\pagestyle\{headings\}
+
+#  plist=[package list '*']
+  plist = {}
+  flagKernel = 0
+  foreach p package {
+    if (p == 'kernel') {flagKernel = 1} else {
+      plist += [package list p]
+    }
+  }
+  plist=[listv sort plist %{arg1 arg2}`return 2*(arg1[0]>arg2[0])-1`]
+  if (flagKernel)  {plist = {{'kernel' 1 2000 '2.0' 'E.Bacry' 'Lastwave kernel package'}} + plist}
+
+  ### Loop on the packages 
+  foreach p1 plist {
+    {p flag year version authors info}=p1
+    if (flag == 0) {continue}
+    info=[_ReplaceStrAll info]
+    printf "\\chapter{Package \\texttt{%s} $version}\n" p
+    printf "{\\em "
+    if (info != '') {printf "%s\\\\ " info}
+    printf "*** Authors and Copyright : %s}" authors
+
+    ### Loop on all the types
+    l = [type list p]
+    l = [listv sort l]    
+    if (l.length!=0) {
+      printf "\\section{Defined types}\n\n" 
+      foreach t l {
+        printf "\\subsection{Type \\texttt{\\&%s}}\n\n" t[1:]
+        printf "\\index{\\&%s}\n" t[1:]
+        if (![type exist t -s]) {
+          printf "This type does not correspond to a C type structure. It must be used to type an argument of a procedure.\\\\" 
+        }
+        help = [type help t]
+
+        foreach h help {
+          tt = h[*list,0]
+          if ([str match tt '{*}'].length!=0) {tt = tt[1:@>-1]}
+          if (tt == t) {break}
+        }
+        if (tt == t) {
+          h = h[*list,1]
+          if ([str match h '{*}'].length!=0) {h = h[1:@>-1]}
+          h=[_ReplaceStrAll h]
+          ll = [str substr h '\n']
+          h[ll] := {'\\\\\n'}
+          printf "%s\n" h
+        }
+
+        
+        ### Displaying the fields
+        if ([type exist t -s] && t != '&signali') {
+          echo \\\\\n
+          field = [type field t]
+          if (field.length!=0) {
+            echo \\begin\{itemize\}
+          }
+          foreach f field {
+              help = [type help t f]
+              help1 = help[0]
+              usage = help1[*list,0]
+              des = help1[*list,1]
+              if ([str match usage '{*}'].length!=0) {usage = usage[1:@>-1]}
+              if ([str match des '{*}'].length!=0) {des = des[1:@>-1]}
+              usage = [_ReplaceStrAll usage]
+              des = [_ReplaceStrAll des]
+              if (f=='') {pp=''} else {pp='.'}
+              printf "\\item[\$\\bullet\$] \\texttt{\\&%s%s%s %s}\\\\\n" t[1:] pp f usage
+              ll = [str substr des '\n']
+              des[ll]:={'\\\\\n'}             
+              printf "%s\n" des
+              if (help[2] isnot null) {
+                help = help[2]
+                if (help != '') {
+                  opt = help[*list,0]
+                  help = help[*list,1:]
+                  if ([str match opt '{*}'].length!=0) {opt = opt[1:@>-1]}
+                  printf "\\\\Options are : \\texttt{%s}\n" opt
+                  echo \\begin\{itemize\}
+                  foreach h help {
+                    if ([str match h '{*}'].length!=0) {h = h[1:@>-1]}
+                    printf "\\item[\$\\bullet\$] %s\n" h
+                  }
+                  echo \\end\{itemize\}
+                }
+              }
+          }
+          if (field.length!=0) {
+            echo \\end\{itemize\}
+          }
+
+        }
+      }      
+    }
+
+
+    ### Loop on all the tables
+    tables=[proc ctable '*' p]
+    foreach t tables {
+
+      list=[listv sort [proc clist '*' t]] 
+      if (list.length != 0) {
+        printf "\\section{%s}\n" t
+
+        foreach c list {
+          printf "\\index{%s}\n" c
+          _TEXPrint1Help c
+        }
+      }
+    }
+    
+    ### Loop on all the script commands
+    list=[listv sort [proc slist '[^_]*' p]] 
+    if (list.length != 0) {
+    
+      printf "\\section{Script Commands}\n\n" 
+    
+        foreach c list {
+          printf "\\index{%s}\n" c
+          _TEXPrint1Help c
+        }
+   }      
+
+    
+    ### Loop on all the graphic classes
+    list=[listv sort [gclass list '*' p]]
+    if (list.length != 0) {
+      foreach c list {
+        father=[gclass father c]
+        printf "\\section{Graphic class \\texttt{%s}" c
+        printf "\\index{%s}\n" c
+        if (father != '') {
+          printf " (inherits from \\texttt{%s})" father
+        }
+        printf "}\n\n"
+        echo \\vspace\{.1cm\}
+        info=[gclass info c] 
+        info1=[_ReplaceStrAll info]
+        printf "%s \\\\ \n" info1
+        help=[gclass help c 'setg']
+        if (help.length != 0) {
+          _TEXPrint1Help 'setg'  c help
+        }
+        
+        help=[gclass help c 'msge']
+        if (help.length != 0) {
+          _TEXPrint1Help 'msge'  c help
+        }
+        
+        binfo=[binding info '*' $c]
+        binding='no'
+        foreach b binfo {
+          if (b.length == 2) {continue}
+          binding='yes'
+          break
+        }
+        if (binding == 'no') {continue}
+        printf "\n\\noindent{\\bf Bindings}\n\n\\begin{itemize}"
+        binfo=[binding info '*' $c]
+        foreach b binfo {        
+          if (b.length == 2) {continue}
+          b = b[2]
+          foreach j b {
+            if ([str match j '{*}'].length!=0) {j = j[1:@>-1]}
+            printf "\\item %s" [_ReplaceStrAll j]
+          }
+        }
+        printf "\n\\end{itemize}\n"
+      }
+    }
+  
+    ### Loop on all the demo files
+    pn=p1[0]
+    if (pn == 'kernel') {
+      files = {}
+    } else {
+      files=[file list '$_scriptDir/$pn/Demo+']
+    }
+    if (files.length != 0) {
+      printf "\\section{Demos}\n"
+      printf "Here is a list of all the Demo files and for each of them all the corresponding Demo commands.\n"
+      printf "To try a Demo command, you should first source the corresponding Demo file then run the command.\n"
+      printf "(When sourcing the Demo file, LastWave tells you about all the commands included in this file).\n"
+      printf "\n\\noindent The Demo files corresponding to this package are :\n"
+      printf "\\begin{itemize}\n"
+      foreach f files {
+        printf "\\item[] Demo file \\texttt{{\\bf %s}}\n\n" f
+        source1 '$_scriptDir/$pn/$f' :: >3
+        
+        list=[listv sort [proc slist 'Demo+']] 
+        foreach c list {
+          printf "\\index{%s}\n" c
+          _TEXPrint1Help c
+          proc delete c
+        }
+        printf "\\hskip .2cm\n"
+      }
+      printf "\\end{itemize}\n"
+    }    
+  }
+
+  echo \\newpage
+  echo \\printindex
+  
+  echo \\end\{document\}
+
+}
+
+# This is just to be able to redirect the output stream of sources
+setproc source1 {file} {
+  source $file
+}
+
+#
+# Generates the pages
+#
+
+#_texdoc
+
+ 
+_texdoc :: >ref.tex

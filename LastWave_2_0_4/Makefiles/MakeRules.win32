@@ -1,0 +1,21 @@
+# Generic targets
+all : $(OBJDIR)lib$(PACKAGENAME).$(LIBEXT)
+
+#$(LIBDIR)lib$(PACKAGENAME).$(LIBEXT) : $(OBJDIR)lib$(PACKAGENAME).$(LIBEXT)
+#	$(CP) $(OBJDIR)lib$(PACKAGENAME).$(LIBEXT) $(LIBDIR)lib$(PACKAGENAME).$(LIBEXT)
+
+$(OBJDIR)lib$(PACKAGENAME).$(LIBEXT) : $(OBJS)
+	@echo Add all objfiles to the $(PACKAGENAME) library!
+	@for %i in ($(OBJS)) do (tlib $(OBJDIR)lib$(PACKAGENAME).$(LIBEXT) -+ %i) 
+
+# Generic static rule to make an object file from a source file
+{$(SRCDIR)}.c{$(OBJDIR)}.$(OBJEXT):
+	$(CC) $(OPTIONS) -c $<
+	$(MV) $&.$(OBJEXT) $@
+
+
+clean :
+	$(RM) .\*~ $(OBJDIR)*.BAK $(OBJDIR)*.$(OBJEXT) $(OBJDIR)*.$(LIBEXT) $(OBJDIR)*.$(SHAREDEXT) $(SRCDIR)*~ $(INCLUDEDIR)*~
+
+
+

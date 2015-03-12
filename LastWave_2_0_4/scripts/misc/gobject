@@ -1,0 +1,307 @@
+#..........................................................................
+#                                                                         
+#      L a s t W a v e    P a c k a g e 'misc' 2.0
+#
+#      Author Emmanuel Bacry                                               
+#      
+#..........................................................................
+
+
+
+#
+#
+# Some useful basic bindings for GObjects 
+#
+#
+
+
+#
+# For moving a gobject around
+#
+
+binding delete 'movegobject'
+
+setbinding 'movegobject' "{{Shift + Ctrl + Middle Button = Move Gobject}}"
+setbinding 'movegobject' GObject middleButtonMotion ctrlShift {_GObjectMoveMotion}
+setbinding 'movegobject' GObject middleButtonDown ctrlShift {_GObjectMoveDown}
+setbinding 'movegobject' GObject middleButtonUp ctrlShift {_GObjectMoveUp}
+
+
+setproc _GObjectMoveDown {} {
+  if ([msge @object class 'Window']) {return} 
+  setv gclass.GObject.i @i -l 1
+  setv gclass.GObject.j @j -l 1
+}
+
+setproc _GObjectMoveMotion {} {
+  if ([msge @object class 'Window']) {return} 
+  global gclass.GObject.i gclass.GObject.j
+  
+  msge @object pmove @i-i @j-j
+
+  i=@i
+  j=@j
+}
+
+setproc _GObjectMoveUp {} {
+  if ([msge @object class 'Window']) {return} 
+  delete 1 gclass.GObject.i 
+  delete 1 gclass.GObject.j
+}
+
+binding activate 'movegobject'
+
+
+#
+# For Displaying values of fields
+#
+
+setproc _GObjectHelp {{&string obj}} {
+  class = [msge $obj class]
+  help=""
+  for {} (class!="") {class=[gclass father class]} {
+    help1=[gclass help class 'setg']
+    helpclass=""
+    if (help1.length==0) {continue}
+    foreach f help1 {
+    
+      ### Get the field
+      {usage des}=f
+      if ([str match usage '^{*}\$'].length!=0) {usage = usage[1:@>-1]}
+      l=[str match usage '[* ]|[*^ ]|' 2]
+      field = usage[l[0]]
+
+      ### get the first letter right after
+      c = usage[l[*no,1]]
+      c = c[*no,0]
+      
+      if (c!="[" && c!="") {continue}
+      if (field[0]=="?") {continue}
+      # We short cut some of the fields
+      if (field=="name") {continue}
+      if (field=="class") {continue}
+      if (field=="pos") {continue}
+      if (field=="apos") {continue}
+      if (field=="size") {continue}
+      if (field=="asize") {continue}
+      if (field=="hide") {continue}
+      sprintf hh "   -$field : %V\n" [setg $obj -$field]
+      helpclass+=hh
+    }
+    
+    if (helpclass=="") {continue}
+    help="\n** $class  \n$helpclass"+help
+  }
+  class = [msge $obj class]
+  help="$obj ($class) \n"+help
+}
+
+#
+# For Displaying the messages
+#
+
+setproc _GObjectMsgeHelp {{&string obj}} {
+  class = [msge $obj class]
+  help=""
+  for {} (class!="") {class=[gclass father class]} {
+    help1=[gclass help class 'msge']
+    helpclass=""
+    if (help1.length==0) {continue}
+    foreach f help1 {
+    
+      ### Get the field
+      {usage des}=f
+      if ([str match usage '^{*}\$'].length!=0) {usage = usage[1:@>-1]}
+
+#      l=[str match usage '[* ]|[*^ ]|' 2]
+#      field = usage[l[0]]
+      field = usage
+      
+      sprintf hh "  %s\n" field
+      helpclass+=hh
+    }
+    
+    if (helpclass=="") {continue}
+    help="\n** $class  \n$helpclass"+help
+  }
+  class = [msge $obj class]
+  help = "Messages of class '$class' : \n" + help
+}
+
+
+#
+# For Displaying binding help
+#
+
+
+setproc _GObjectBindingHelp {{&string obj}} {
+  
+  class = [msge $obj class]
+  
+  help="Bindings on gobject of class '$class' : "
+
+  for {} (class != "") {class=[gclass father class]} {
+    info=[binding info '*' $class]
+    help1=""
+    foreach i info {
+      if (i.length == 2) {continue}
+      foreach j i[2] {
+        if ([str match j '^{*}\$'].length!=0) {j=j[1:@>-1]}
+        help1+="   $j\n"
+      }
+    }
+    if (help1 == "") {continue}
+    help+="\n** "+class+"  \n"+help1
+  }
+  return help
+}
+
+#
+# Creating the help window and displaying corresponding help
+#
+setproc _GObjectHelpDown {cmd} {
+
+  help = [$cmd @objname]
+       
+  # Let's compute the rectangle we will draw the help in
+  {x y w h}=[font rect 'default' help left 0 base 0]
+  {i j}=[setg $@window -pos]
+  {k l}=[setg $@window -size]
+  
+  w+=8
+  h+=6
+  
+  #Should we adjust its position ?
+  global Display
+  {a b c d} = Display.ScreenRect
+  if (i+k+20+w < c) {
+    i+=k+20
+  } elseif (i-w-20 > a) {
+    i-=w+20
+  } elseif (j+l+40+h < d) {
+    j+=l+40
+  }  elseif (j-h-40 > b) {
+    j-=h+40
+  }
+  
+  # Let's draw a string box 
+  if ([window list 'help'] != "") {msge help delete}
+  window new 'help' -size w h -pos i j 
+  msge help show
+  msge help add 'b' Box -clip -size w h -pos 0 0 -pen 2 -bg 'lightgrey' -frame 1 -centered 0 -string help -fg 'black'
+      
+  # Let's remember its position for erasing it later
+  setv binding.GObject.help.rect {i j w h} -l 1
+
+  msge $@window front
+}
+
+#
+# Deleting the help window
+#
+
+setproc _GObjectHelpUp {} {
+  msge help delete
+}
+
+
+#
+# Hitting the 'h' key
+#
+
+setproc _GObjectHelpH {} {
+  
+  l = [binding info 'textedit']
+  if (l.length!=0) {
+    if (l[0][1] == 1) {return}
+  }
+
+  global binding.GObject.help.state
+
+  if ([msge help exist] && type(state) == '&listv') {
+    if (state[1] == @objname) {
+      if (state[0] == 0) {
+        _GObjectHelpDown '_GObjectMsgeHelp'
+        state[0] = 1
+      } elseif (state[0] == 1) {
+        _GObjectHelpDown '_GObjectBindingHelp'
+        state[0] = 2
+      } else {
+        msge help delete
+        state = null
+      }
+      return
+    }
+  }
+  
+  state =  {0 @objname}
+    
+  _GObjectHelpDown '_GObjectHelp'
+}
+
+
+#
+# Hitting the 'b' key
+#
+
+setproc _GObjectHelpB {} {
+  
+  l = [binding info 'textedit']
+  if (l.length!=0) {
+    if (l[0][1] == 1) {return}
+  }
+
+  global binding.GObject.help.state
+
+  if ([msge help exist] && type(state) == '&listv') {
+    if (state[1] == @objname) {
+      msge help delete
+      state = null
+      return
+    }
+  }
+  
+  state =  {0 @objname}
+    
+  _GObjectHelpDown '_GObjectBindingHelp'
+}
+
+
+binding delete 'helpgobject'
+
+setbinding 'helpgobject' "{{h = Display successively field values/Messages/binding help} {b = Display/hide binding help}}"
+setbinding 'helpgobject' GObject keyDown 'h' {_GObjectHelpH}
+setbinding 'helpgobject' GObject keyDown 'b' {_GObjectHelpB}
+
+
+binding activate 'helpgobject'
+
+
+
+
+#
+# Binding to associate 'option' 'w' to the action of deleting a window
+# and 'option' 'o' for deleting a gobject
+#
+
+binding delete 'deleteGObject' 
+
+setbinding 'deleteGObject' "{{f1 = Delete the window the mouse is in} {delete = Delete the graphic object the mouse is in}}"
+
+setbinding 'deleteGObject' GObject keyDown 'f1' {
+  msge $@window delete
+}   
+
+setbinding 'deleteGObject' GObject keyDown 'delete' {_DeleteGObject}
+setproc _DeleteGObject {} {
+
+  l = [binding info 'textedit']
+  if (l.length!=0) {
+    if (l[0][1] == 1) {return}
+  }
+  msge @object delete
+}   
+
+binding activate 'deleteGObject'
+
+

@@ -1,0 +1,23 @@
+# The name of the package
+PACKAGENAME = unix
+
+#
+# The specific list of Unix files
+#
+
+OBJS = $(OBJDIR)unix_system.$(OBJEXT)\
+$(OBJDIR)x11_graphics.$(OBJEXT)\
+$(OBJDIR)x11_terminal.$(OBJEXT)
+
+#
+# The specific Unix options
+#
+OPTIONS  = $(CCOPTIONS) -I$(INCLUDEDIR) -I../../kernel/include -I$(X11INCLUDE)
+
+#
+# The specific dependance
+#
+$(OBJS) $(MULTIDEP) ../../kernel/include/*.h ../../unix/include/*.h
+
+
+

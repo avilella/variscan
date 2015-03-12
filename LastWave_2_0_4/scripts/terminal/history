@@ -1,0 +1,182 @@
+#..........................................................................
+#                                                                         
+#      L a s t W a v e    P a c k a g e 'terminal' 2.0
+#
+#      Author Emmanuel Bacry                                               
+#      
+#..........................................................................
+
+
+
+#
+# Regular edition of terminal command line
+#
+
+binding delete 'edition'
+
+setbinding 'edition' "Terminal regular edition"
+
+setbinding 'edition' terminal keyDown _erasel {terminal eraseline}
+setbinding 'edition' terminal keyDown _left {terminal movecursor -1}
+setbinding 'edition' terminal keyDown '0x2' {terminal movecursor -1}
+setbinding 'edition' terminal keyDown _right {terminal movecursor 1}
+setbinding 'edition' terminal keyDown '0x6' {terminal movecursor 1}
+setbinding 'edition' terminal keyDown _begin {terminal cursor 0}
+setbinding 'edition' terminal keyDown _end {terminal cursor 10000}
+
+
+binding activate 'edition'
+
+
+#
+# Some global variables
+#
+if (![var exist _history]) {
+  _history.hcn=0
+  _history.hcnevent=0
+  _history.hc=''
+  _history.hcline=''
+
+  _history.hn=0
+  _history.hnevent=0
+}  
+
+
+#
+# History completion
+#
+
+binding delete 'hcedition'
+
+setbinding 'hcedition' "Terminal history completion"
+
+setbinding 'hcedition' terminal keyDown _uphist {_UpCHistory}
+setbinding 'hcedition' terminal keyDown _uphist {_UpCHistory}
+
+setproc _UpCHistory {} {
+  
+  if ([terminal mode] != 'command') {return}
+  
+  global _history.hcn _history.hcline _history.hc _history.hcnevent
+  
+  n = [system nEvents]
+
+  if (hcnevent != n) {
+    hcn = 0
+    hcline = [terminal line]
+    if (hcline == '') {return}
+    hcline_ = hcline
+    hcline_[[str match hcline '[!]']] := '\\!'
+    hc = [history match '!'+hcline_+'!'+'*']
+    hcnevent = n
+  }
+  
+  if (hc.length  > hcn) {
+    terminal line hc[hcn]
+    hcn+=1
+  }
+  
+  hcnevent+=1
+}
+
+setbinding 'hcedition' terminal keyDown _downhist {_DownCHistory}
+
+setproc _DownCHistory {} {
+  
+  if ([terminal mode] != 'command') {return}
+
+  global _history.hcn _history.hcline _history.hc _history.hcnevent
+  
+  n = [system nEvents]
+  
+  if (hcnevent != n) {
+    hcn = 0
+    hcline = [terminal line]
+    if (hcline == '') {return}
+    hcline_ = hcline
+    hcline_[[str match hcline '[!]']] := '\\!'
+    hc = [history match '!'+hcline_+'!'+'*']
+    hcnevent = n
+  }
+  
+  if (hcn > 1) {
+    hcn-=1
+    terminal line hc[hcn-1]
+  } elseif (hcn == 1) { 
+    hcn = 0
+    terminal line hcline
+  } 
+    
+  hcnevent+=1
+}
+
+
+binding activate 'hcedition'
+
+
+#
+# History edition (up&down)
+#
+
+binding delete 'hedition'
+
+setbinding 'hedition' "Terminal history edition"
+
+
+setbinding 'hedition' terminal keyDown _up {_UpHistory}
+setbinding 'hedition' terminal keyDown '0x10' {_UpHistory}
+
+setproc _UpHistory {} {
+
+  if ([terminal mode] != 'command') {return}
+
+  
+  global _history.hn _history.hnevent
+  
+  n = [system nEvents]
+ 
+  if (hnevent != n) {
+    hn = [history index]
+    hnevent = n
+  }
+  
+  if (hn > [history index]-[history size]) {
+    hn-=1
+    terminal line [history index hn]
+  }
+
+  hnevent+=1
+}
+
+
+
+setbinding 'hedition' terminal keyDown _down {_DownHistory}
+setbinding 'hedition' terminal keyDown '0xe' {_DownHistory}
+
+setproc _DownHistory {} {
+
+  if ([terminal mode] != 'command') {return}
+  
+  global _history.hn _history.hnevent
+  
+  n = [system nEvents]
+  
+  if (hnevent != n) {
+    hn = [history index]
+    hnevent = n
+  }
+  
+  if (hn < [history index]-1) {
+    hn+=1
+    terminal line [history index hn]
+  } elseif (hn == [history index]-1) {
+    hn+=1
+    terminal line ''
+  }
+  
+  hnevent+=1
+}
+
+
+binding activate 'hedition'
+

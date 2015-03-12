@@ -1,0 +1,63 @@
+
+#
+# This is a demo file for the compress2d package
+#
+
+
+setproc DemoCompress2d {} "{{{} {Displays the original 'lenna' image along with its compressed version and the error image}}}" {
+  StartDemo DemoCompress2d
+}
+
+setproc _DemoCompress2d0 {} {
+
+  import args 1 System
+
+global _scriptDirectory objCur a2
+_scriptDir = _scriptDirectory[0]
+
+# We set the current object to be the 'owtrans2' named 'a2'. 
+# This variable is automatically created when the package 'owtrans2d' is loaded
+# (see the file owtrans2d.pkg)
+a2
+
+
+# Set the current color map to be the grey one 
+colormap current 'grey'
+
+# Pick up a wavelet filter (Daubechies 8)
+owt2f 'Daub8'
+
+# Read the image we want to compress
+# (The '-c' option means that the file contains characters coding 
+# grey levels between 0 and 255)
+iread 0 '$_scriptDir/image/lenna.char' -c
+
+# Compute the wavelet decomposition of the image on 8 levels
+owt2d 8
+
+# Compress and code this wavelet transform using a quantization step of 20
+# and store the result in the file scripts/compress2d/lenna.compressed
+code2 '$_scriptDir/compress2d/lenna.compressed' 20
+
+# Decode and Decompress the corresponding file and put the
+# result image in the image number 1
+decode2 '$_scriptDir/compress2d/lenna.compressed' 1
+
+# Let's display from top to bottom :
+#    - The original image
+#    - The compressed image
+#    - The error between these two images
+disp {0 1 0a2-1a2} -size 3*(256+4) 256+21 -title "Original/compressed/error"
+
+
+
+# Let's print some stats on the error 
+istats print 0a2-1a2
+
+  printf "\nIf you want to learn how these graphs were generated look at the procedure \
+'_DemoCompress2d0' in the file 'scripts/compress2d/DemoCompress2d'\n"
+
+}
+
+help DemoCompress2d
+

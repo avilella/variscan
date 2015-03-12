@@ -1,0 +1,109 @@
+############################################################################
+#
+# Demo file for the dwtrans2d package
+#
+############################################################################
+
+setproc DemoDWtrans2dWT {} "{{{} {Demo command that computes the dyadic wavelet transform \
+of the 'lenna' image on 5 octaves and displays it. It also displays the reconstruction \
+image as well as the error image.}}}" {
+  StartDemo DemoDWtrans2dWT
+}
+
+setproc _DemoDWtrans2dWT0 {} {
+
+  import args 1 System
+
+
+import args 1 objCur a2d _scriptDirectory
+ _scriptDir = _scriptDirectory[0]
+
+
+#select dwtrans2 as the current object
+a2d
+
+# Set the current color map to be the grey one 
+colormap current 'grey'
+
+#read the image
+iread 0 '$_scriptDir/image/lenna.char' -c
+
+#save it
+1=0a2d
+
+#perform decomposition on 5 octaves
+dwt2d 5
+
+#show the decomposition
+dw2disp a2d
+
+#Make the reconstruction
+dwt2r
+
+#show the reconstruction,the original image
+disp  {0 1 0a2d-1a2d} -title "Original/Reconstruction/Error" -pos 10 40 -size 257*3 256+15
+
+  printf "\nIf you want to learn how these graphs were generated look at the procedure \
+'_DemoDWtrans2dWT0' in the file 'scripts/dwtrans2d/DemoDWtrans2d'\n"
+
+
+}
+
+help DemoDWtrans2dWT
+
+
+#######
+
+setproc DemoDWtrans2dExtrema {} "{{{} {Demo command that computes the extrema of the dyadic wavelet transform \
+of the 'lenna' image on 5 octaves. It displays the original image, the reconstruction \
+image (reconstructed from the extrema) as well as the error image.}}}" {
+  StartDemo DemoDWtrans2dExtrema
+}
+
+setproc _DemoDWtrans2dExtrema0 {} {
+
+  import args 1 System
+
+
+import args 1 objCur a2d _scriptDirectory
+ _scriptDir = _scriptDirectory[0]
+
+#choose dwtrans2
+a2d
+
+# Set the current color map to be the grey one 
+colormap current 'grey'
+
+#read the lena image
+iread 0 '$_scriptDir/image/lenna.char' -c
+
+#save it
+2=0a2d
+
+# Perform decomposition
+dwt2d 5
+
+#make the extrema representation
+extrema2
+
+#make the reconstruction from extrema
+e2recons 20
+
+#save it
+1=0a2d
+
+#threshold extrema at all level
+e2thresh 0 20
+
+#make the recontruction from the thresholded extrema
+e2recons 20
+
+#display the result
+disp  {0 1 2} -title "Threshold/reconstruct/original"
+
+  printf "\nIf you want to learn how these graphs were generated look at the procedure \
+'_DemoDWtrans2dExtrema0' in the file 'scripts/dwtrans2d/DemoDWtrans2d'\n"
+
+}
+
+help DemoDWtrans2dExtrema

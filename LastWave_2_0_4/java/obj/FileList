@@ -1,0 +1,28 @@
+# The name of the package
+PACKAGENAME = java
+
+#
+# The C files for the java interface (implementing XX** functions)
+#
+OBJS = $(OBJDIR)java_terminal.$(OBJEXT) \
+$(OBJDIR)java_graphics.$(OBJEXT) \
+$(OBJDIR)java_audio.$(OBJEXT) 
+
+OPTIONS = $(CCOPTIONS) -I$(INCLUDEDIR) -I../../kernel/include $(JAVA_SYSTEM_INCLUDE)
+
+# Dependencies and rules to make them
+$(OBJS) $(MULTIDEP) $(INCLUDEDIR)JavaTerminal.h ../../kernel/include/*.h
+
+# The C files for XX** functions depend on a header file
+# JavaTerminal.h which is automatically generated whenvever the JAVA
+# code is changed
+$(INCLUDEDIR)JavaTerminal.h : $(JAVAPATH)JavaTerminal.class
+	javah -jni -classpath $(JAVAPATH) -o $(INCLUDEDIR)JavaTerminal.h JavaTerminal
+
+$(JAVAPATH)JavaTerminal.class $(MULTIDEP) $(SRCDIR)JavaTerminal.java
+	javac -d $(JAVAPATH) $(SRCDIR)JavaTerminal.java
+
+
+
+
+

@@ -1,0 +1,534 @@
+#;; -*- Mode: Tcl -*-
+#..........................................................................
+#                                                                         
+#      L a s t W a v e    P a c k a g e 'mp' 2.0
+#
+#      Author Emmanuel Bacry and Remi Gribonval
+#      
+#      File associated the mp package
+#                                                                    
+#..........................................................................
+
+# We need those packages for the Matching Pursuit
+# Test if the package STFT is already loaded, if not load it
+if ([package list 'stft'][0][1]==0) {
+    package load 'stft'
+}
+
+source MPDalgorithms
+
+#
+# Let's create some book structures m,n
+# and the corresponding script for changing the objCur
+#
+if ([var exist m] == 0) {
+  foreach book "m n" {
+
+    # let's create the book
+    bk=[new &book]
+    bk.name=book
+
+    # Set it to the right variable
+    $book = bk
+
+    # and create the corresponding command
+    # It has to import the 'objCur' from the calling environement and the book from the global one
+    # and to set the first to the second one
+      setproc $book {} "{{{} {Changes the objCur variable to the book '$book'.}}}" \
+      %%`\
+      import args 1 $book
+      import args -1 objCur
+      objCur = null
+      objCur = $book
+      return
+    `
+  }
+
+  objCur=null
+  objCur=m
+
+  var delete book
+  var delete bk
+}
+
+#
+# Dealing with the DISPLAY of BOOKs
+#
+
+# The default position of book windows
+disp.book.rect={370 55 700 500}
+
+# Perform zoom on books with the mouse : there are two modes
+SetZoomBindings GraphBook {'rect' 'xrect'}
+
+#
+# Perform cursor displaying on books : there are three modes
+# -no cursor at all
+# -a simple cross
+# -a rectangle aroung (all) the atom(s) of the "closest" molecule
+#
+
+# 
+# Regular cursor 
+#
+
+# Print a caption with the time-frequency location of the mouse 
+setproc _CursorTextGraphBook {}  {
+  book=[setg @object -graph]
+  # Get the time location (in real coordinates)
+  # and convert it into sample coordinates 
+  index      = int((@x-book.x0)/book.dx+.5)
+  if (index < 0) {index=0} 
+  if (index >= book.signalSize) {index=book.signalSize-1} 
+  # Get the frequency location (in real coordinates)
+  # and convert it into sample coordinates 
+  freq = int(@y*2*book.freqIdNyquist*book.dx+.5)
+  if (freq < 0) {freq=0} 
+  if (freq > book.freqIdNyquist) {freq=book.freqIdNyquist} 
+
+  return "$@objname : t=$@x [$index] f=$@y [$freq]" 
+}
+
+
+setproc _DrawCursorNoneGraphBook {{&var cursor}} {
+  cursor.erase=null
+  return [_CursorTextGraphBook]
+}
+
+setproc _DrawCursorGraphBook {{&var cursor}}  {
+  # Draw the cross in inverted mode
+  _ViewDrawCrossHair cursor.view $@x $@y
+  # The very same command will erase the cursor
+  cursor.erase=%%`_ViewDrawCrossHair '$cursor.view' $@x $@y`
+  return [_CursorTextGraphBook]
+}
+
+#
+# Cursor that circles the closest molecule
+#
+SetSuperposeBindings GraphBook
+
+binding delete 'BookArrow'
+
+# Text relative to the circled molecule that must be be printed 
+setproc _CursorClosestMolTextGraphBook {obj {&mol mol} {&int rank}}  {
+    # Check whether the molecule contains a harmonic structure or not
+    if (mol.dim != 1) {
+	harm="(h)"
+    } else {
+	harm=""
+    }
+    energy=mol.coeff2
+    s=mol[0].dt
+    t=mol[0].time
+    f=mol[0].freq
+    c=mol[0].chirp
+    sId=mol[0].windowSize
+    tId=mol[0].timeId
+    fId=mol[0].freqId
+    cId=mol[0].chirpId
+    return "$obj : #$rank $harm a=$energy s=$s [$sId] t=$t [$tId] f=$f [$fId] c=$c [$cId]"
+}
+
+# Draw as many 'rectangles' as needed around the atom(s) of a molecule 
+setproc _DrawMolRect {obj {&mol mol} {&int rank}} {
+    # Prepares a list of options for drawing the 'rectangles'
+    list = ""
+    for {k=0} (k<mol.dim) {k=k+1} {
+	atom=mol[k]
+	if (atom is null) {continue}
+	freq       = atom.freq
+	time       = atom.time
+	chirp      = atom.chirp
+	dt         = atom.dt
+	df         = atom.df
+	# Deal with asymetric atoms
+	if (atom.windowShape == 'FoF' || atom.windowShape == 'exponential') {
+	    time = time+dt  
+	}
+	if (k>0) {list = list+" "}
+	list=list+"{$time $freq $dt $df $chirp}"
+    }
+    global bindings
+    bindings.GraphBook.BookArrow.rank=rank
+    command="_DrawNParallelograms '$@objname' "+"{$list}"
+    _SuperposeReplace $@objname 'molrect' "$command"
+}
+
+setproc _DrawCursorClosestMolGraphBook {{&var cursor}}  {
+  # Get the closest molecule and its rank
+  book=[setg @object -graph]
+  l=[setg @object -?closest $@x $@y]
+  # If there is none, do nothing
+  if (l==null) {
+    cursor.erase=null
+    return
+  }
+  # If there is one, check if it is visible 
+  {n k}=l
+  mol   = book[n]
+  freq  = mol[0].freq
+  time  = mol[0].time
+  scale = mol[0].windowSize
+  # Get the time-freq rectangle that is displayed
+  {x0 x1 y0 y1} = [setg ${@objname}.^ -bound]
+  # Get the scale range that is displayed
+  {smin smax}   = [setg $@objname -s]
+  if (x0 > time || time > x1 || y0 > freq || freq > y1 || smin > scale || scale > smax) {
+    # No, it is not visible!
+    cursor.erase=null
+    return
+  }
+
+  # draw the appropriate rectangle(s) around its atom(s)
+  _DrawMolRect '$@objname' mol n
+  cursor.erase=%%`SuperposeDelete $@objname 'molrect'`
+  return [_CursorClosestMolTextGraphBook '$@objname' mol n]
+}
+
+SetCursorBindings GraphBook {%_DrawCursorNoneGraphBook %_DrawCursorGraphBook %_DrawCursorClosestMolGraphBook}
+
+# Draw a list of parallelograms
+setproc _DrawParallelogram {obj {&listv i} {&word clip ``}} {
+    {t f dt df c}=i
+    options="-mode 'inverse' $clip"
+    eval %%`draw point  $obj t-dt f-c*dt-df $options`
+    eval %%`draw lineto $obj t-dt f-c*dt+df $options`
+    eval %%`draw lineto $obj t+dt f+c*dt+df $options`
+    eval %%`draw lineto $obj t+dt f+c*dt-df $options`
+    eval %%`draw lineto $obj t-dt f-c*dt-df $options` 
+}
+
+setproc _DrawNParallelograms {obj {&word list} {&word clip ``}} {
+    lv = $list
+    foreach i lv {
+	_DrawParallelogram  '$obj' i $clip
+  }
+} 
+
+# Draw a rectangle around the 'molecule' 
+setproc _DrawMol {{&mol mol} {&int rank}} {
+    _DrawMolRect '$@objname' mol rank
+    setgu ${@objname}.^.^.box -string [_CursorClosestMolTextGraphBook '$@objname' mol rank]
+}
+
+# When we leave the graph we delete the global variables
+setproc _LeaveMol {} {
+  SuperposeDelete @object 'molrect' 
+  _DeleteEmptyGlobalArray bindings.GraphBook.BookArrow
+}
+
+# We start from a molecule book[rank] and return the rank of the next 
+# (resp. previous) visible one. 'Next' (resp. previous) is meant in the
+# large/strict sense depending on the value of flagStrict. 
+# For example the 'next' is :
+# -if flagStrict==0 : the smallest n>=rank such that book[n] is visible
+# -if flagStrict==1 : the smallest n> rank such that book[n] is visible
+#
+# If no such visible molecule is visible we return -1
+setproc _GetMol {{&book book} {&int rank} {&string field} {&int flagStrict}} {
+    if (![msge ${@objname}.^ class 'View']) return
+    # Get the time-freq rectangle that is displayed
+    {x0 x1 y0 y1} = [setg ${@objname}.^ -bound]
+    # Get the scale range that is displayed
+    {smin smax}   = [setg $@objname -s]
+
+    # The direction in which we should look
+    if (field == "next") {
+	incr=1
+    } elseif (field == "prev")  {
+	incr=-1
+    } else {
+	errorf "Unknown &mol field %s"  field
+    }
+
+    # Now we loop to find the closest molecule that is displayed
+    for {n=rank+incr*flagStrict} (n>=0 && n<book.size) {n=n+incr} {
+	mol=book[n]
+	# Is the molecule visible ?
+	freq = mol[0].freq
+	time = mol[0].time
+	{timemin timemax} = mol[0].support
+	scale = mol[0].windowSize
+	if (x0 <= time && time <= x1 && y0 <= freq && freq <= y1 && smin <= scale && scale <= smax) {
+	    # Yes, it is visible!
+	    return n
+	}
+    }
+    return -1
+}
+
+
+setproc _DrawFirstMol {} {
+    book=[setg @object -graph]
+    rank=[_GetMol book 0 'next' 0]
+    if (rank<0) {return}
+    _DrawMol book[rank] rank
+}
+
+setproc _DrawLastMol {} {
+    book=[setg @object -graph]
+    rank=[_GetMol book book.size-1 'prev' 0]
+    if (rank<0) {return}
+    _DrawMol book[rank] rank
+}  
+  
+setproc _DrawPrevMol {} {
+    book = [setg @object -graph]
+    global bindings.GraphBook.BookArrow.rank
+    # If no molecule was displayed we look for the first one
+    if (rank is null) {
+	_DrawFirstMol
+	return
+    } 
+    n=[_GetMol book rank 'prev' 1]
+    if (n<0) {return}
+    _DrawMol book[n] n
+}
+    
+setproc _DrawNextMol {} {
+    book = [setg @object -graph]
+    global bindings.GraphBook.BookArrow.rank
+    # If no molecule was displayed we look for the last one
+    if (rank is null) {
+	_DrawLastMol
+	return
+    } 
+    n=[_GetMol book rank 'next' 1]
+    if (n<0) {return}
+    _DrawMol book[n] n
+}
+
+# The play part was not checked
+setproc _PlayAtom {mode} {
+
+  book=[setg @object -graph]
+  if (![var exist 1 bindings.GraphBook.BookArrow.rank]) {
+    printf "No atom selected\n"
+    return
+  }
+  global bindings
+  rank=bindings.GraphBook.BookArrow.rank
+  sound =[new &signal]
+  sound1=[new &signal]
+
+  if ((mode == "one") || (mode == "norm")) {
+      {tmin tmax} = [mpr book sound -n $rank $rank :: >]
+  }
+  if (mode == "upto") {{tmin tmax}=[mpr book sound -n 0 $rank :: >]}
+  if (mode == "downto") {{tmin tmax}=[mpr book sound -n $rank book.size-1 :: >] }
+
+  sound1=sound[*x,(tmin*book.dx+book.x0):(tmax*book.dx+book.x0)]
+
+  # The sample frequency should be at least 8 kHz
+  if (sound1.dx > 1/8000) {sound1.dx=1/8000}
+  printf "start playing ...."
+  sound play sound1
+  printf "stop\n"
+}  
+
+setproc _PlaySine {} {
+
+  book=[setg @object -graph]
+  dx = book.dx
+  # The sample frequency should be at least 8 kHz
+  if (dx > 1/80000) {dx = 1/8000}
+  # The duration is half a second
+  size = int(.5/dx)
+  s=[new &signal]
+  s=sin(2*pi*I($size)*$@y*$dx)
+  s.dx = dx
+  sound play s
+}  
+  
+setbinding 'BookArrow' "{Down key = Go to First atom} \
+{Up key = Go to Last atom} \
+{Right key = Go to Next atom} \
+{Left key = Go to Previous atom} \
+{'-' = Play a sine at cursor frequency} \
+{'=' = Play Closest atom} \
+{'<' = Play reconstruction up to closest atom} \
+{'>' = Play reconstruction from closest atom}"
+setbinding 'BookArrow' GraphBook keyDown 'down'  {_DrawFirstMol}
+setbinding 'BookArrow' GraphBook keyDown 'up'    {_DrawLastMol}
+setbinding 'BookArrow' GraphBook keyDown 'right' {_DrawNextMol}
+setbinding 'BookArrow' GraphBook keyDown 'left'  {_DrawPrevMol}
+setbinding 'BookArrow' GraphBook leave           {_LeaveMol} 
+setbinding 'BookArrow' GraphBook keyDown '-'     {_PlaySine}
+setbinding 'BookArrow' GraphBook keyDown '='     {_PlayAtom 'one'}
+setbinding 'BookArrow' GraphBook keyDown '<'     {_PlayAtom 'upto'}
+setbinding 'BookArrow' GraphBook keyDown '>'     {_PlayAtom 'downto'}
+binding activate 'BookArrow'  
+
+#
+# Binding to move the molecules/atoms 
+#
+binding delete 'BookMove'
+
+setbinding 'BookMove' "{Shift+Left button = move molecule/atom} \
+{Shift+Middle button = transpose molecule/atom} \
+{Shift+Right button = translates molecule/atom} \
+{Ctrl+Left button = scale molecule/atom} \
+{Ctrl+Middle button = change amplitude molecule/atom}"
+setbinding 'BookMove' GraphBook leftButtonMotion   shift  {_MoveMolMotion}
+setbinding 'BookMove' GraphBook leftButtonDown     shift  {_MoveMolDown 1 1 0 0}
+setbinding 'BookMove' GraphBook leftButtonUp       shift  {_MoveMolUp} 
+
+setbinding 'BookMove' GraphBook middleButtonMotion shift  {_MoveMolMotion}
+setbinding 'BookMove' GraphBook middleButtonDown   shift  {_MoveMolDown 0 1 0 0}
+setbinding 'BookMove' GraphBook middleButtonUp     shift  {_MoveMolUp} 
+
+setbinding 'BookMove' GraphBook rightButtonMotion  shift  {_MoveMolMotion}
+setbinding 'BookMove' GraphBook rightButtonDown    shift  {_MoveMolDown 1 0 0 0}
+setbinding 'BookMove' GraphBook rightButtonUp      shift  {_MoveMolUp} 
+
+setbinding 'BookMove' GraphBook leftButtonMotion   ctrl   {_MoveMolMotion}
+setbinding 'BookMove' GraphBook leftButtonDown     ctrl   {_MoveMolDown 0 0 1 0}
+setbinding 'BookMove' GraphBook leftButtonUp       ctrl   {_MoveMolUp} 
+
+setbinding 'BookMove' GraphBook middleButtonMotion  ctrl  {_MoveMolMotion}
+setbinding 'BookMove' GraphBook middleButtonDown    ctrl  {_MoveMolDown 0 0 0 1}
+setbinding 'BookMove' GraphBook middleButtonUp      ctrl  {_MoveMolUp} 
+
+
+setproc _MoveMolDown {translate transpose scale amplify} {
+
+
+    # Get the closest molecule
+    book=[setg @object -graph]
+    l=[setg @object -?closest @x @y]
+    global &array bindings.GraphBook.BookMove
+    if (l==null) {
+	  BookMove.mol=null
+	  cursor.erase=null
+	  return
+    }
+    {n k}=l
+
+    BookMove.oldCursorMode = [_CursorMode]
+    _CursorChange 1
+    
+    BookMove.mol=book[n]
+    BookMove.rank=n
+    BookMove.translate=translate
+    BookMove.transpose=transpose
+    BookMove.scale=scale
+    BookMove.amplify=amplify
+    BookMove.x=@x
+    BookMove.y=@y
+}
+
+setproc _MoveMolMotion {} {
+  import args 1 bindings.GraphBook.BookMove
+  if (BookMove.mol is null) {return}
+  # Prepares a list of options for drawing the rectangles
+  x=@x
+  y=@y
+  list=""
+  for {k=0} (k < BookMove.mol.dim) {k=k+1} {
+    atom=BookMove.mol[k]
+    if (atom is null) {continue}
+    time=atom.time
+    freq=atom.freq
+    chirp=atom.chirp
+    coeff2=atom.coeff2
+    phase=atom.phase
+    dt = atom.dt
+    df = atom.df
+    # Deal with asymetric atoms
+    if (atom.windowShape == 'FoF' || atom.windowShape == 'exponential') {
+	time = time+dt  
+    }
+        
+    if (BookMove.scale != 0) {
+	octave=int(log2(atom.windowSize)+0.5)
+	octave=int(octave+log2(abs(x-time))-log2(abs(BookMove.x-time)))
+#	octave=octave+log2(abs(x-time))-log2(abs(BookMove.x-time))
+	windowSize=atom.windowSize
+        atom.windowSize = max(2,2^(octave))
+	dt = atom.dt
+	df = atom.df
+	atom.windowSize=windowSize
+    }
+    if (BookMove.translate != 0) {
+	time=atom.x0+atom.dx*int(0.5+(time-atom.x0+x-BookMove.x)/atom.dx)
+    }
+    if (BookMove.transpose != 0) {
+	phase=phase*y/BookMove.y
+	freq=freq*y/BookMove.y
+	chirp=chirp*y/BookMove.y
+    }
+
+    if (BookMove.amplify != 0) {
+	# There should be a more ergonomic relation between 
+	# the amplitude change and the mouse movement !
+	coeff2=coeff2*y/BookMove.y
+        echo $coeff2
+    }
+    if (k>0) {list=list+" "}
+    list=list+"{$time $freq $dt $df $chirp}"
+  }
+  command="_DrawNParallelograms '$@objname' "+"{$list}"
+  _SuperposeReplace $@objname 'molrect' "$command"
+}
+
+setproc _MoveMolUp {} {
+    # Actually move the molecule/atom
+    #  if ([msge @object class Window]) return 
+    x=@x
+    y=@y
+    import args 1 bindings.GraphBook.BookMove
+    if (BookMove.mol is null) {
+	return
+    }
+
+    book=[setg @object -graph]
+    # Limit the translation to a certain range
+    # !!! THIS MAY HAVE TO DEPEND ON x0 and the display range
+    if (x < 0) {x=0} 
+    if (x > book.dx*(book.signalSize-1)) {x=book.dx*(book.signalSize-1)}
+    
+    # Limit the transposition to a certain range
+    # !!! THIS MAY HAVE TO DEPEND ON the display range
+    if (y < 0) {y=0} 
+    if (y*book.dx > 0.5) {y=0.5/book.dx} 
+    
+    for {k=0} (k < BookMove.mol.dim) {k=k+1} {
+	atom=BookMove.mol[k]
+	if (atom is null) {continue}
+	if (BookMove.scale != 0) {
+	    octave=int(log2(atom.windowSize)+0.5)
+	    octave=int(octave+log2(abs(x-atom.time))-log2(abs(BookMove.x-atom.time)))
+	    atom.windowSize=max(2,2^octave)
+	}
+	if (BookMove.translate != 0) {
+	    atom.timeId = atom.timeId+int(0.5+(x-BookMove.x)/atom.dx)
+	    # When non-integer times will be implemented, the above line 
+	    # will be replaced by the one below
+	    #     atom.time = atom.time+x-BookMove.x
+	    # Should we change the phase too ?
+	}
+	if (BookMove.transpose != 0) {
+	    # Do not change transpose DC/Nyquist atoms
+	    if (atom.freqId!=0 && atom.freqId!=atom.freqIdNyquist) {
+		atom.phase=atom.phase*y/BookMove.y
+		atom.freq=atom.freq*y/BookMove.y
+		atom.chirp=atom.chirp*y/BookMove.y
+	    }
+	}
+	if (BookMove.amplify != 0) {
+	    # There should be a more ergonomic relation between 
+	    # the amplitude change and the mouse movement !
+	    atom.coeff2=atom.coeff2*y/BookMove.y
+	}
+    }
+    disp
+
+    _CursorChange BookMove.oldCursorMode
+
+    var delete 1 bindings.GraphBook.BookMove
+}
+
+
+binding activate 'BookMove'
+

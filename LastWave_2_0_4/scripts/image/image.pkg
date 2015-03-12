@@ -1,0 +1,77 @@
+
+#..........................................................................
+#                                                                         
+#      L a s t W a v e    P a c k a g e 'image' 2.0
+#
+#      Emmanuel Bacry                                             
+#      
+#      File associated the image package
+#                                                                    
+#..........................................................................
+
+
+# The default position of image windows when 'disp' is used
+disp.imagei.rect={50 50 256 256}
+disp.imagei.axis=0
+disp.imagei.reverse='none'
+disp.imagei.margin={1 1 1 20}
+
+
+# Perform zoom on images with the mouse
+SetZoomBindings GraphImage {'rect' 'xrect' 'yrect'}
+
+#
+# Perform cursor displaying on image
+#
+
+
+setproc _CursorTextGraphImage {}  {
+  image = [setg @object -graph]
+  setg @object -?image image
+  nrow=image.nrow
+  ncol=image.ncol
+  x=int(@x+.5)
+  y=int(@y+.5)
+
+  if (y < 0 || y >nrow-1 || x < 0 || x >ncol-1) {
+    return "$@objname : x=$x y=$y val=?"   
+  }
+  return "$@objname : x=$x y=$y val=$image[y;x]"
+}
+
+setproc _DrawCursorNoneGraphImage {cursor} {
+  cursor.erase=null
+  return [_CursorTextGraphImage]
+}
+
+
+setproc _DrawCursorGraphImage {cursor}  {
+  _ViewDrawCrossHair cursor.view @x @y
+  cursor.erase = %%`_ViewDrawCrossHair '$cursor.view' $@x $@y`
+  return [_CursorTextGraphImage]
+}
+
+SetCursorBindings GraphImage {%_DrawCursorNoneGraphImage %_DrawCursorGraphImage}
+
+
+#
+# Let's create some simple geometric shape images
+#
+
+setproc rect {{nrow 256} {ncol 256}} {
+  marginy=nrow/4
+  marginx=ncol/4
+  return 255*(I(nrow,ncol)>=marginy && I<=nrow-marginy-1 && J>=marginx && J<=ncol-marginx-1)
+}
+
+setproc circle {{nrow 256} {ncol 256}} {
+  centery=nrow/2
+  centerx=ncol/2
+  if (nrow < ncol) {radius = nrow/4} else {radius = ncol/4}
+  radius2 = radius^2
+  return 255*(((I(nrow,ncol)-centery)^2+((J-centerx)^2))<=radius2)
+}
+
+
+
+   

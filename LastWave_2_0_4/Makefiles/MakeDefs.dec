@@ -1,0 +1,39 @@
+# --- Libraries ---
+LIBS=  -lX11 -lPW -lm 
+
+# -L /usr/X11R6/lib 
+
+# --- Includes ---
+X11INCLUDE = /usr/include/X11R6
+
+# ---
+CC = cc
+
+# --- Flags for cc --- 
+# WARNING : DO NOT REMOVE -ieee
+CCOPTIONS = -std -O -ieee -DDEC  
+
+# ---
+MAKE = make
+RM   = rm -f
+MV   = mv
+CP   = cp
+
+OBJDIR     = ./$(ARCH)/
+SRCDIR     = ../src/
+INCLUDEDIR = ../include/
+OBJEXT     = o
+
+# The path for the executable/libraries
+JAVAPATH   = $(LWPATH)/bin/
+BINPATH    = $(LWPATH)/bin/$(ARCH)/
+LIBPATH    = $(LWPATH)/lib/$(ARCH)/
+
+LIBEXT     = a
+SHAREDEXT  = so
+EXEEXT     = 
+
+MULTIDEP   = :
+
+
+

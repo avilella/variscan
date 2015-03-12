@@ -1,0 +1,9 @@
+
+# Read the terminal keys (should be changed depending on the keyboard you use)
+source keys
+
+# Read the terminal bindings for help and history functions
+source help history
+
+# Read the bindings for terminal completions
+source fileCompletion

@@ -1,0 +1,179 @@
+#..........................................................................
+#                                                                         
+#      L a s t W a v e    P a c k a g e 'misc' 2.0
+#
+#      Author Emmanuel Bacry                                               
+#      
+#..........................................................................
+
+
+#
+# Defining new useful named colors
+#
+
+color nnew 'red' rgb 65535 0 0   
+color nnew 'green' rgb 0 65535 0   
+color nnew 'blue' rgb 0 0 65535   
+color nnew 'black' rgb 0 0 0   
+color nnew 'white' rgb 65535 65535 65535
+color nnew 'grey' hsv 0 0 .6   
+color nnew 'lightgrey' hsv 0 0 .8   
+color nnew 'verylightgrey' hsv 0 0 .9   
+color nnew 'darkgrey' hsv 0 0 .4   
+color install
+
+# Procedure for Initialization of the numbered colors
+#   'num' number of colors to allocate
+#   'color' is 0 (for black and white) or 1
+
+setproc _CMInit {{&int num} {&int color} name} {
+
+  if (num >= 0) {
+    iMin=0
+    iStep=1
+  } else {
+    iMin=-num-1
+    iStep=-1
+    num=-num
+  }
+  
+  # hue
+  sig1=(1-I(num)/num)*270
+
+  # saturation
+  sig2 = One(num)*color 
+
+  # value
+  if (color) {
+    sig3 = (I(num)/num)^.3
+  } else {
+    sig3 = I(num)/(num-1)
+  }
+
+  colormap new name num
+  
+  # the loop
+  i=iMin
+  
+  foreach k 0:!num {
+    color inew name k hsv sig1[i] sig2[i] sig3[i] 
+    i+=iStep
+  }
+}
+
+
+#
+# Procedure for initialization of the colormap
+# 
+setproc cminit {{&int num 100} {flagColor 1} {name "color"}} \
+  "{{{[[-]<numOfColors>=100] [<flagColor>=1] [<colorMapName>=color]} \
+{Sets the colormap <colormapName> with <numOfColors> colors from black to red \
+(going through blue) or (if <numOfColors> < 0) from red to black. If <flagColor>==0 \
+then grey levels are used from black to white or white to black (if <numOfColors> < 0)}}}" \
+{
+  _CMInit num flagColor name
+  color install
+  foreach w [window list] {msge $w draw}
+}
+
+
+
+#
+# We create a new class of gobject for displaying colormaps
+# This gobject class is named "Colormap"
+#
+
+
+# Drawing a colormap gobject 
+setproc _CMDraw {obj .l} {
+
+  # Get the colormap name of the gobject 
+  id=[msge $obj id]
+  global `gclass.Colormap.$id struct`
+  cmap=struct.cmap
+
+  # Get the size of the colormap
+  ncols=[colormap size cmap]
+  
+  # Get the size of the gobject 
+  {w h}=[setg $obj -size]
+  
+  
+  #Then draw it 
+  y=h
+  r=w/ncols
+
+  foreach i 0:!ncols {
+    draw rect $obj i*r 0 r y -fill -color "$i$cmap" -rectType 'large'
+  }
+}
+
+
+# Receiving a message..  
+setproc _CMMsge {obj message .l} {
+  
+  if (obj == "?") {return}
+  
+  id=[msge $obj id]
+
+  # For the initialization the colormap gobject will be using the current colormap
+  if (message == "init") {
+    setv gclass.Colormap.${id}.cmap [colormap current] -l 1
+    return 1
+  }
+  
+  # Deleting a colormap gobject
+  if (message == "delete") {
+    delete 1 gclass.Colormap.$id
+    return 1
+  }  
+}
+
+# Setting the fields of a colormap gobject (just one field '-cm') 
+setproc _CMSet {obj field .l} {
+
+  if (obj == "?") {
+    return "{{{cm [<colorMap>]} {Sets/Gets the colormap.}}}"
+  }
+  
+  # Get the structure associated to the gobject
+  id=[msge $obj id]
+  global `gclass.Colormap.$id struct`
+  
+  # The '-cm' field 
+  if (field == "cm") {
+    if (l.length> 1) {errorf "Bad field value '%V' for colormap gobject" l}
+    if (l.length==0) {
+      return struct.cmap
+    }    
+    struct.cmap=l[0]
+    return 1
+  }  
+}
+
+gclass new Colormap GObject %_CMSet %_CMMsge %_CMDraw "Graphic Class to draw colormaps"
+proc delete %_CMSet %_CMMsge %_CMDraw
+
+#
+# The main command to display a colormap
+# We display the colormap using a colormap gobject and a window
+# named "colormap"
+#
+
+setproc cmdisp {{name "?"}} \
+  "{{{[<colormapName>=<current>]} {Displays the colormap in a window.}}}" \
+{
+  if (name == "?") {name=[colormap current]}
+  
+  #If the window colormap already exists we delete its content
+  if [msge colormap exist] {
+    msge colormap.cm delete
+  } else {
+    window new 'colormap' -pos 60 60 -size 350 60
+    msge colormap show
+  }
+
+  # We add the new colormap gobject to the window
+  msge colormap add 'cm' Colormap -cm name -pos 10 10 -size 330 40
+}  
+  

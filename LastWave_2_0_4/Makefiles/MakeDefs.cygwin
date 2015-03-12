@@ -1,0 +1,37 @@
+# --- Architecture ---
+ARCH= cygwin
+
+# --- Libraries ---
+LIBS=  -lX11 -lm -L /usr/X11R6/lib  -lwinmm 
+
+# --- Includes ---
+X11INCLUDE = /usr/X11R6/include
+JAVA_SYSTEM_INCLUDE = -I/cygdrive/c/j2sdk1.4.0/include -I/cygdrive/c/j2sdk1.4.0/include/win32
+
+# ---
+CC = gcc
+
+# --- Flags for cc ---
+CCOPTIONS = -O -DCYGWIN 
+
+# ---
+MAKE = make
+RM   = rm -f
+MV   = mv
+CP   = cp
+
+OBJDIR     = ./$(ARCH)/
+SRCDIR     = ../src/
+INCLUDEDIR = ../include/
+OBJEXT     = o
+
+# The path for the executable/libraries
+JAVAPATH   = $(LWPATH)/bin/
+BINPATH    = $(LWPATH)/bin/$(ARCH)/
+LIBPATH    = $(LWPATH)/lib/$(ARCH)/
+
+LIBEXT     = a
+SHAREDEXT  = so
+EXEEXT     = 
+
+MULTIDEP   = :

@@ -1,0 +1,86 @@
+#..........................................................................
+#                                                                         
+#      L a s t W a v e    P a c k a g e 'owtrans2d' 2.0
+#
+#      Author Emmanuel Bacry                                               
+#      
+#      File associated the signal package
+#                                                                    
+#..........................................................................
+
+#
+# Let's create some owtrans2 structures a2,b2,...
+# and the corresponding script for changing the objCur
+#
+if ([var exist a2] == 0) {
+  foreach w "a2 b2" {
+
+    # let's create the owtrans2d
+    wt = [new &owtrans2]
+    wt.name = w
+    
+    # Set it to the right variable
+    $w = wt
+
+    # and create the corresponding command
+    # It has to import the 'objCur' from the calling environement and the wtransform from the global one
+    # and to set the first to the second one
+    setproc $w {} %%`\
+      import args 1 $w 
+      import args -1 objCur
+      objCur = null
+      objCur = $w
+      return
+    `
+  }
+  var delete w
+  var delete wt
+}
+
+
+#
+# Function to display orthogonal watelet transform
+#
+
+setproc ow2disp {{&owtrans2 wt objCur} {&int smallestOct -1}} "{{{[<owtrans2>=objCur] [<smallestOctave>=1]} {This function displays an orthogonal 2d wavelet transform (i.e., \
+a variable of type '&owtrans2') on a window. If no <owtrans2> is specified then the current object is used. \
+By default, all the octaves of the decomposition are displayed. If <smallestOctave> is specified then \
+it corresponds to the smallest octave being displayed. Let us note that you can us the mouse on each image \
+of the display in order to perform zooms.}}}" \
+{
+  noct=wt.noct
+  if (smallestOct < 1) {smallestOct=1}
+  if (noct < smallestOct) {smallestOct=noct}
+    
+  win=[_GetWindowDisp "" '&owtrans2' 'WindowDisp' {100 100 400 400}]
+  msge $win remove 'v*'
+  
+  d=2^noct
+  setg $win -mn d d -dxdy 2 2 -synchro 'none'
+    
+  foreach oct smallestOct:noct {
+
+    size=2^(noct+smallestOct-1-oct)
+
+    isize = wt[oct,1].ncol
+    
+    msge $win add 'v${oct}1' EView -grid? 1 -grid 1 1+size size size -hide 1 -reverse 'none'
+    msge ${win}.v${oct}1 add  'image' GraphImage -graph wt[oct,1]
+    setg ${win}.v${oct}1 -bound 0 isize-1 0 isize-1
+
+    msge $win add 'v${oct}3' EView -grid? 1 -grid 1+size 1+size size size -hide 1 -reverse 'none'
+    msge ${win}.v${oct}3 add  'image' GraphImage -graph wt[oct,3]
+    setg ${win}.v${oct}3 -bound 0 isize-1 0 isize-1
+
+    msge $win add 'v${oct}2' EView -grid? 1 -grid 1+size 1 size size -hide 1 -reverse 'none'
+    msge ${win}.v${oct}2 add 'image' GraphImage -graph wt[oct,2]
+    setg ${win}.v${oct}2 -bound 0 isize-1 0 isize-1
+  }
+
+  oct-=1
+  msge $win add 'v${oct}0' EView -grid? 1 -grid 1 1 size size -hide 1 -reverse 'none'
+  msge ${win}.v${oct}0 add 'image' GraphImage -graph ${oct}0wt
+  setg ${win}.v${oct}0 -bound 0 isize-1 0 isize-1
+  
+  setgu ${win}..v* -hide 0
+}

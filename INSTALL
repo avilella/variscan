@@ -1,0 +1,14 @@
+#In a (Linux) bash console, decompress the file with the typical:
+
+tar xzf variscan-2.0.tar.gz
+
+#and then compile with:
+
+cd variscan-2.0
+
+./autogen.sh
+
+make
+
+#This will give you a "variscan" binary file in the /src folder.
+#For more information please read the README file

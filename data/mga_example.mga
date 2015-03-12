@@ -1,0 +1,42 @@
+39 0 0 0 0
+Exact: ttgttgatattctgttttttcttttttagttttccacat                               39
+
+!39 !39 !39 !39 
+Seq 1: g                                                                      1
+Seq 2: a
+Seq 3: a
+Seq 4: a
+
+28 40 40 40 40
+Exact: aaaaatagttgaaaacaatagcggtgtc                                          28
+
+12:68-79 12:68-79 12:68-79 12:68-79 
+Seq 1: cccttaaaatgg                                                          12
+Seq 2: a...........
+Seq 3: a..........a
+Seq 4: a..........a
+
+23 80 80 80 80
+Exact: cttttccacaggttgtggagaac                                               23
+
+5:103-107 5:103-107 5:103-107 5:103-107 
+Seq 1: ccaaa                                                                  5
+Seq 2: t...g
+Seq 3: .....
+Seq 4: .....
+
+27 108 108 108 108
+Exact: ttaacagtgttaatttattttccacag                                           27
+
+32:135-166 2:135-136 32:135-166 32:135-166 
+Seq 1: gttgtggaaaaactaactattatccatcgttc                                      32
+Seq 2: ---..---------------------------
+Seq 3: a..........................t.c..
+Seq 4: a..........................t.c..
+
+216 167 137 167 167
+Exact: tgtggaaaactagaatagtttatggtagaatagttctagaattatccacaagaaggaacc          60
+Exact: tagtatgactgaaaatgaacaaattttttggaacagggtcttggaattagctcagagtca         120
+Exact: attaaaacaggcaacttatgaattttttgttcatgatgcccgtctattaaaggtcgataa         180
+Exact: gcatattgcaactatttacttagatcaaatgaaaga                                 216
+

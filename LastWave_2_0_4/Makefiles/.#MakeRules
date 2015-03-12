@@ -1,0 +1,18 @@
+# Generic targets
+all : $(OBJDIR)lib$(PACKAGENAME).$(LIBEXT)
+
+#$(LIBDIR)lib$(PACKAGENAME).$(LIBEXT) : $(OBJDIR)lib$(PACKAGENAME).$(LIBEXT)
+#	$(CP) $(OBJDIR)lib$(PACKAGENAME).$(LIBEXT) $(LIBDIR)lib$(PACKAGENAME).$(LIBEXT)
+
+$(OBJDIR)lib$(PACKAGENAME).$(LIBEXT) : $(OBJS)
+	ar cr  $@ $(OBJS)
+	ranlib $@
+
+# Generic static rule 
+$(OBJDIR)%.$(OBJEXT) : $(SRCDIR)%.c
+	$(CC) $(OPTIONS) -c $< -o $@
+
+
+clean :
+	$(RM) ./*~ $(OBJDIR)*.$(OBJEXT) $(OBJDIR)*.$(LIBEXT) $(OBJDIR)*.$(SHAREDEXT) $(SRCDIR)*~ $(INCLUDEDIR)*~
+

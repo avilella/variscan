@@ -1,0 +1,31 @@
+# The name of the package
+PACKAGENAME = sound
+
+#
+# The specific list of sound package files
+#
+OBJS = $(OBJDIR)aiff.$(OBJEXT) \
+$(OBJDIR)alaw.$(OBJEXT) \
+$(OBJDIR)au.$(OBJEXT) \
+$(OBJDIR)common.$(OBJEXT) \
+$(OBJDIR)paf.$(OBJEXT) \
+$(OBJDIR)pcm.$(OBJEXT) \
+$(OBJDIR)raw.$(OBJEXT)  \
+$(OBJDIR)sndfile.$(OBJEXT) \
+$(OBJDIR)svx.$(OBJEXT) \
+$(OBJDIR)ulaw.$(OBJEXT) \
+$(OBJDIR)wav.$(OBJEXT) \
+$(OBJDIR)wav_float.$(OBJEXT) \
+$(OBJDIR)wav_ima_adpcm.$(OBJEXT) \
+$(OBJDIR)wav_ms_adpcm.$(OBJEXT) \
+$(OBJDIR)sound.$(OBJEXT) \
+$(OBJDIR)package_sound.$(OBJEXT)
+#
+# The specific sound package options
+#
+OPTIONS  = $(CCOPTIONS) -I$(INCLUDEDIR) -I../../kernel/include -I../../unix/include -I../../package_signal/include -I$(X11INCLUDE)
+
+#
+# The specific dependance
+#
+$(OBJS) $(MULTIDEP) ../../kernel/include/*.h ../../unix/include/*.h ../../package_sound/include/*.h ../../package_signal/include/*.h

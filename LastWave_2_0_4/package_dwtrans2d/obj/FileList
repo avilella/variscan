@@ -1,0 +1,55 @@
+# The name of the package
+PACKAGENAME = dwtrans2d
+
+#
+# The specific list of dwtrans2d package files
+#
+OBJS = $(OBJDIR)chain2_alloc.$(OBJEXT) \
+$(OBJDIR)chain2_args.$(OBJEXT) \
+$(OBJDIR)chain2_delete.$(OBJEXT) \
+$(OBJDIR)chain2_compute.$(OBJEXT) \
+$(OBJDIR)chain2_direction.$(OBJEXT) \
+$(OBJDIR)chain2_focus.$(OBJEXT) \
+$(OBJDIR)chain2_functions.$(OBJEXT) \
+$(OBJDIR)chain2_garbage.$(OBJEXT) \
+$(OBJDIR)chain2_insert.$(OBJEXT) \
+$(OBJDIR)chain2_piece.$(OBJEXT) \
+$(OBJDIR)chain2_print.$(OBJEXT) \
+$(OBJDIR)chain2_smooth.$(OBJEXT) \
+$(OBJDIR)chain2_split.$(OBJEXT) \
+$(OBJDIR)chain2_statistics.$(OBJEXT) \
+$(OBJDIR)chain2_thresh.$(OBJEXT) \
+$(OBJDIR)convol2.$(OBJEXT) \
+$(OBJDIR)coordinate.$(OBJEXT) \
+$(OBJDIR)ddecomp2.$(OBJEXT) \
+$(OBJDIR)denoise_regular.$(OBJEXT) \
+$(OBJDIR)denoise_utilities.$(OBJEXT) \
+$(OBJDIR)dwtrans2_alloc.$(OBJEXT) \
+$(OBJDIR)dwtrans2_io.$(OBJEXT) \
+$(OBJDIR)dwtrans2d_package.$(OBJEXT) \
+$(OBJDIR)error_recons.$(OBJEXT) \
+$(OBJDIR)ext2_alloc.$(OBJEXT) \
+$(OBJDIR)ext2_compute.$(OBJEXT) \
+$(OBJDIR)ext2_copy.$(OBJEXT) \
+$(OBJDIR)ext2_delete.$(OBJEXT) \
+$(OBJDIR)ext2_e_io.$(OBJEXT) \
+$(OBJDIR)ext2_io.$(OBJEXT) \
+$(OBJDIR)ext2_normalize.$(OBJEXT) \
+$(OBJDIR)ext2_print.$(OBJEXT) \
+$(OBJDIR)ext2_proj.$(OBJEXT) \
+$(OBJDIR)ext2_recons.$(OBJEXT) \
+$(OBJDIR)ext2_relocation.$(OBJEXT) \
+$(OBJDIR)ext2_thresh.$(OBJEXT) \
+$(OBJDIR)filter_alloc2d.$(OBJEXT) \
+$(OBJDIR)grad_compute.$(OBJEXT) \
+$(OBJDIR)white_noise_remove.$(OBJEXT)
+
+#
+# The specific DWT2D options
+#
+OPTIONS  =  $(CCOPTIONS) -I$(INCLUDEDIR) -I../../kernel/include -I../../package_signal/include -I../../unix/include -I$(X11INCLUDE)  -I../../package_image/include 
+
+#
+# The specific dependance
+#
+$(OBJS) $(MULTIDEP) ../../kernel/include/*.h ../../unix/include/*.h ../../package_signal/include/*.h  $(INCLUDEDIR)/*.h ../../package_image/include/*.h

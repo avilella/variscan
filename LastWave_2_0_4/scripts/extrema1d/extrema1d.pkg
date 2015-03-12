@@ -1,0 +1,192 @@
+#..........................................................................
+#                                                                         
+#      L a s t W a v e    P a c k a g e 'extrema1d' 2.0
+#
+#      Author Emmanuel Bacry                                               
+#      
+#      File associated the extrema1d package
+#                                                                    
+#..........................................................................
+
+
+# The default position of extrep windows when 'disp' is used
+disp.extrep.rect={375 100 550 200}
+
+# Perform zoom on extrep with the mouse
+SetZoomBindings GraphExtrep {'xrect' 'normal'}
+
+#
+# Perform cursor displaying on extrep
+#
+
+
+setproc _CursorTextGraphExtrep {}  {
+  extrep = [setg @object -graph]
+  nv=extrep.nvoice
+  no=extrep.noct
+  v = @y%nv
+  o = 1+@y//nv
+
+  if (@y < 0 || @y >nv*no) {
+    return "$@objname : $@x [index = ?] a = ? [$@y = ? ?]  val = ?"   
+  }
+  
+  a = 2^(o-1+v/nv)
+  scale = (o-1)*nv+v
+  
+  index=int((@x-extrep.x0)/extrep.dx+.5)
+  
+  return "$@objname : $@x [index = $index] a = $a [$scale = $o $v]"
+}
+
+setproc _DrawCursorNoneGraphExtrep {{&var cursor}} {
+  cursor.erase=null
+  return [_CursorTextGraphExtrep]
+}
+
+setproc _DrawCursorGraphExtrep {{&var cursor}}  {
+  _ViewDrawCrossHair cursor.view $@x $@y
+  cursor.erase=%%`_ViewDrawCrossHair '$cursor.view' $@x $@y`
+  return [_CursorTextGraphExtrep]
+}
+
+setproc _DrawCursorClosestGraphExtrep {{&var cursor}} {
+  extrep = [setg @object -graph]
+  nv=extrep.nvoice
+  no=extrep.noct
+  v = @y%nv
+  o = 1+@y//nv
+
+  if (@y < 0 || @y >nv*no) {
+    return "$@objname : $@x [index = ?] a = ? [$@y = ? ?]  val = ?"   
+  }
+
+  ext = [extrep closest extrep @x @y]
+  if (ext is null) {return}
+
+  a = 2^(o-1+v/nv)
+  scale = (o-1)*nv+v
+
+  x=ext.x
+  y=ext.y
+  val=ext.z
+  index=ext.index
+  draw ellipse @object x y 3 3 -mode 'inverse' -centered -pixel
+  cursor.erase=%%`draw ellipse @object $x $y 3 3 -centered -mode 'inverse' -pixel`
+  
+  return "$@objname : $@x [index = $index] a = $a [$scale = $o $v] val = $val"
+}
+
+SetCursorBindings GraphExtrep {%_DrawCursorNoneGraphExtrep %_DrawCursorGraphExtrep %_DrawCursorClosestGraphExtrep}
+
+
+##########################################################
+#  
+#  Bindings on GraphExtrep to draw a maxima line
+#
+##########################################################
+
+# Allowing superposition with GraphSignals
+SetSuperposeBindings GraphExtrep
+
+
+binding delete 'maxline'
+
+# Draw a maxima line starting from the closest extremum to x and y
+setproc _MaxLineDrawGraphExtrep {obj x y {&word clip ``}} {
+
+  # Get the closest extremum
+  extrep = [setg $obj -graph]
+  ext = [extrep closest extrep x y]
+
+  if (ext is null) {return}
+  
+  # Then draw
+  xOld=ext.x
+  yOld=ext.y
+
+  for {ext1 = ext.finer} (ext1 isnot null) {ext1=ext1.finer} {
+    x = ext1.x
+    y = ext1.y
+    eval %%`draw line $obj $xOld $yOld $x $y -mode 'inverse' -pen 4 $clip`
+    eval %%`draw point $obj $x $y -mode 'inverse' -pen 4 $clip`
+    xOld = x
+    yOld = y
+  }
+  xOld=ext.x
+  yOld=ext.y
+  eval %%`draw point $obj $xOld $yOld -mode 'inverse' -pen 4 $clip`
+  for {ext1 = ext.coarser} (ext1 isnot null) {ext1=ext1.coarser} {
+    x = ext1.x
+    y = ext1.y
+    eval %%`draw line $obj $xOld $yOld $x $y -mode 'inverse' -pen 4 $clip`
+    eval %%`draw point $obj $x $y -mode 'inverse' -pen 4 $clip`
+    xOld = x
+    yOld = y
+  }
+  eval %%`draw point $obj $x $y -mode 'inverse' -pen 4 $clip`
+}
+  
+
+
+# Line binding when any ButtonDown (with shift) (just light up the line)
+setproc _MaxLineDownGraphExtrep {} {
+
+  # Are we in a view ? 
+  if (![msge @father class 'View']) {return}
+
+  # Erase a former line if any
+  SuperposeDelete @object 'maxline'
+  
+  # Just add the drawing
+  SuperposeAdd1 @object 'maxline' "_MaxLineDrawGraphExtrep '$@objname' $@x $@y"
+}
+
+# If middle/right button then do a cut 
+setproc _MaxLineMiddleRightDownGraphExtrep {flagLog} {
+
+  # Get the closest extremum
+  extrep = [setg @object -graph]
+  ext = [extrep closest extrep @x @y]
+  no = extrep.noct
+  nv = extrep.nvoice
+
+  if (ext is null) {return}
+     
+  # Then get the cut
+  sig = Zero(no*nv)
+  sig.x0 = 0
+  sig.dx = 1/nv
+
+  scale = ext.y 
+  
+  for {ext1 = ext} (ext1 isnot null) {ext1=ext1.finer} {
+    sig[ext1.y] = ext1.z
+  }
+  for {ext1 = ext.coarser} (ext1 isnot null) {ext1=ext1.coarser} {
+    scale = ext1.y
+    sig[ext1.y] = ext1.z
+  }
+
+  sig.size = scale+1
+  
+  if (flagLog) {
+    disp log2(abs(sig)) -..fv1 -yLabel 'LOG(a)'
+  } else {
+    disp sig
+  }
+}
+
+setbinding 'maxline' "{{Shift + Middle button = Display Wavelet transform along the maxima line} \
+{Shift + Right button = Display log(|Wavelet transform|) along the maxima line} \
+{Shift + Left button = Show maxima line}}"
+setbinding 'maxline' GraphExtrep middleButtonDown shift %%`_MaxLineMiddleRightDownGraphExtrep 0`
+setbinding 'maxline' GraphExtrep rightButtonDown shift %%`_MaxLineMiddleRightDownGraphExtrep 1`
+setbinding 'maxline' GraphExtrep buttonDown shift %%_MaxLineDownGraphExtrep
+
+binding activate 'maxline'
+
+
+
+
+

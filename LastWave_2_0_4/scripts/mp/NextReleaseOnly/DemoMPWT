@@ -1,0 +1,221 @@
+############################################################################
+#
+# This is a demo file for the MP package that allows to
+# reproduce the figures 9.11 (b), 9.12, 10.16, and 10.17 of the book
+# "A Wavelet Tour in Signal Processing" by S. Mallat.
+#
+############################################################################
+
+
+setproc DemoMPWT_9_11_b {} "{{{} {Demo command that reproduces the figure 9.11 (b) of the book 'A Wavelet Tour in Signal Processing' by S. Mallat.}}}" {
+
+  import args 1 System
+  if (System == 'unix') {
+  echo WARNING : For unix users, there is a bug that forbids you to close
+  echo the window using the X-Window menu. It will core dump right away. 
+  echo To delete a window just hit the 'f1' key while the mouse is in the
+  echo window you want to delete.
+  }
+  import args 1 m
+  import args 1 objCur
+  scriptDirectory=[var unix LWSOURCEDIR]
+  echo $scriptDirectory
+  dataDir="${scriptDirectory}/mp/data"
+  # Set the current book to 'm'
+  m
+
+  # Read the data from file 'transients.asc' 
+  sig = [new &signal]
+  # See Mallat and Zhang's 1993 article on Matching Pursuit 
+  # to learn about this signal.
+  read sig "${dataDir}/transients.asc"
+
+  # Set the sampling rate of the signal 
+  sig.dx = 1/(sig.size)
+
+  # Compute the Matching Pursuit, with 50 iterations,
+  # on an oversampled time-frequency grid, with interpolation
+  mpd sig 50 -T 4 -i :: >
+
+  # Display the book, with captions and labels
+  disp m -title "Figure 9.11 (b) : Gabor Matching Pursuit" -size 550 400 -..1 -cm 'grey' -db 1 -expo 20 -..fv1 -xLabel 't' -yLabel 'w/2p' -..ylabel -font 'symbol-10-plain' -apos 5 5
+}
+
+help DemoMPWT_9_11_b
+
+
+setproc DemoMPWT_9_12 {} "{{{} {Demo command that reproduces the figure 9.12 of the book 'A Wavelet Tour in Signal Processing' by S. Mallat.}}}" {
+
+  import args 1 System
+  if (System == 'unix') {
+  echo 
+  echo WARNING : For unix users, there is a bug that forbids you to close
+  echo the window using the X-Window menu. It will core dump right away. 
+  echo To delete a window just hit the 'f1' key while the mouse is in the
+  echo window you want to delete.
+  }
+
+  import args 1 m
+  import args 1 objCur
+  scriptDirectory=[var unix LWSOURCEDIR]
+  dataDir="${scriptDirectory}/mp/data"
+
+  # Set the current book to 'm'
+  m
+
+  # Read the data from file 'greasy.asc'
+  sig = [new &signal]
+  read sig "${dataDir}/greasy.asc"
+
+  # Compute the Matching Pursuit, with 250 iterations,
+  # on an oversampled time-frequency grid. As this may be long,
+  # just read the pre-computed book if possible.
+  # Otherwise uncomment the two following lines.
+  # mpd sig 250 -F 4 -T 8 -i
+  # book write "${dataDir}/greasy.book"
+  book read  "${dataDir}/greasy.book"
+
+  # Displays the book  with title, caption and labels
+  disp m -title "Figure 9.12 : Gabor Matching Pursuit of the word \"greasy\"" -size 550 400 -pos 20 350 -..1 -cm 'grey' -db 1 -expo 30 -..fv1 -xLabel 't' -yLabel 'w/2p' -..ylabel -font 'symbol-10-plain' -apos 5 2
+  # Displays the signal with title, caption and labels
+  disp sig -title "Figure 9.12 : \"greasy\" signal" -size 550 200 -pos 20 50 -..fv1 -xLabel 't' -yLabel "f(t)" 
+}
+
+# These commented lines were used to compute the 
+# large (1500 atoms) books used for the display of the
+# decay of the correlation
+#
+#  read sig "${dataDir}/greasy.asc"
+#  mpd sig 1500 -i
+#  book write "${dataDir}/greasy.MP1500.book"
+## This makes a SNR of 1.5 dB
+#  sig=sig+10^(2.525)*Grand
+#  mpd sig 1500 -i
+#  book write "${dataDir}/greasy.noisy.MP1500.book"
+
+help DemoMPWT_9_12
+
+
+setproc DemoMPWT_10_16 {} "{{{} {Demo command that reproduces the figure 10.16 of the book 'A Wavelet Tour in Signal Processing' by S. Mallat.}}}" {
+
+  import args 1 System
+  if (System == 'unix') {
+  echo 
+  echo WARNING : For unix users, there is a bug that forbids you to close
+  echo the window using the X-Window menu. It will core dump right away. 
+  echo To delete a window just hit the 'f1' key while the mouse is in the
+  echo window you want to delete.
+  }
+
+  import args m
+  import args objCur
+  scriptDirectory=[var unix LWSOURCEDIR]
+  dataDir="${scriptDirectory}/mp/data"
+
+  # Set the current book to 'm'
+  m
+
+  # Read the book for original "greasy" signal
+  book read  "${dataDir}/greasy.MP1500.book"
+
+  # Extracts the series of squared inner-product
+  # <R^k x,g_k>^2, k = 0..M-1
+  sig = m.wcoeff2
+
+  # Sets a signal with ||R^k x||^2, k = 0..M and store it in signal 1
+  # (The first point is the signal energy)
+  1m=m.resEnergy
+  # We have to decrease the size by ONE because we want this signal to be of same size as
+  # the energy signal (stored in sig)
+  1m.size=1m.size-1
+
+  # Read the book for noisy "greasy" signal
+  book read  "${dataDir}/greasy.noisy.MP1500.book"
+
+  # Extracts the series of squared inner-product
+  # <R^k x,g_k>^2, k = 0..M-1
+  # and residual energy
+  # ||R^k x||^2, k = 0..M-1
+  # as in the preceding situation
+  2m = m.wcoeff2
+  3m = m.resEnergy
+  3m.size=3m.size-1
+
+  # Displays the decays of <R^k x,g_k>/||R^k x|| with title, caption and labels
+  disp {{sqrt(sig/1m) sqrt(2m/3m)}} -title "Decay of the correlation" -..fv1 -xLabel "m" -yLabel "C(R^m f)" -..ylabel -pos 60 4 -..xlabel -pos 309 309 -..1 -fg 'red'
+  msge ..view add 'text1' Text -string "(a)" -apos 89 228 -fg 'red'
+  msge ..view add 'text2' Text -string "(b)" -apos 77 254
+  msge ..view add 'caption1' Text -string "(a) Decay of the correlation\n for the \"greasy\" signal  shown\n in Figure 10.17(a)" -apos 80 30 -fg 'red'
+  msge ..view add 'caption2' Text -string "(b) Same thing for the noisy\n \"greasy\" signal  shown\n in Figure 10.17(b)" -apos 80 100
+
+}
+
+help DemoMPWT_10_16
+
+
+
+setproc DemoMPWT_10_17 {{&int M 76}} "{{{[<NbCoherentStructures>=76]} {Demo command that reproduces the figure 10.17 of the book 'A Wavelet Tour in Signal Processing' by S. Mallat.}}}"  {
+ 
+  import args 1 System
+  if (System == 'unix') {
+  echo 
+  echo WARNING : For unix users, there is a bug that forbids you to close
+  echo the window using the X-Window menu. It will core dump right away. 
+  echo To delete a window just hit the 'f1' key while the mouse is in the
+  echo window you want to delete.
+  }
+
+  import args m
+  import args objCur
+  scriptDirectory=[var unix LWSOURCEDIR]
+  dataDir="${scriptDirectory}/mp/data"
+
+  # Set the current object to be book 'm'
+  m
+
+  # Read the data
+  read 1 "${dataDir}/greasy.asc"
+
+  # Create the noisy version by adding Gaussian noise
+  # SNR is about 1.5 dB
+  # sig=1m+10^(2.525)*Grand
+  sig = [new &signal]
+  read sig "${dataDir}/greasy.noisy.asc"
+
+  # Read the pre-computed book, which was obtained by 
+  # 1500 iterations of the Matching Pursuit, with interpolation.
+  book read  "${dataDir}/greasy.noisy.MP1500.book"
+
+  # Reconstruct from M first coherent structures, 
+  # and put it in signal '2'
+  mpr 2 -n 0 M-1
+  # Computing the SNR
+  3m=1m-2m
+  signalEnergy=sum(1m^2)
+  errorEnergy=sum(3m^2)
+  SNR = 10*log(signalEnergy/errorEnergy)
+  # Rounding it to 2 decimals
+  SNR = int(100*SNR)/100
+
+  # Displays the original signal, noisy signal, book and denoised signal,
+  # with title, caption and labels
+  disp {1 sig} {m 2} -title "Figure 10.17 : Denoising with Gabor Matching Pursuit" -size 1000 600 -pos 20 50 
+  echo 1
+  disp -..3 -cm 'grey' -db 1 -expo 30 -n 0 M-1
+  echo 2
+  disp -..fv3 -xLabel 't' -yLabel 'w/2p' -..ylabel -font 'symbol-10-plain' -pos 40 2 
+  echo 3
+  disp -..fv4 -xLabel "t" -yLabel "f(t)"
+  echo 3b
+  disp -..fv1 -title "(a) : Speech recording of \"greasy\"" -xLabel "t" -yLabel "f(t)" -..fv2 -title "(b) : Recording of \"greasy\" plus a Gaussian white noise (SNR = 1.5dB)" -xLabel "t" -yLabel "f(t)" 
+  echo 4 
+ disp -..fv3 -title "(c) : Time-frequency distribution of the M = $M coherent Gabor structures" 
+  echo 5
+ disp -..fv4 -title "(d) : Estimation reconstructed from the M = $M coherent structures (SNR = $SNR dB)" 
+  echo 6
+}
+
+help DemoMPWT_10_17
+
+
+

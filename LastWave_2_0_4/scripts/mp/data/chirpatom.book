@@ -1,0 +1,26 @@
+LastWave Header
+Name : m
+Signal dx        : 0.0009765625
+Signal size      : 1024
+Signal energy    : 1038.2919
+Decomp border type  3
+Decomp atomWindow   4
+Decomp oMin  2 oMax  10
+Decomp tNSON 2 fNSON 1
+Decomp flagNoFreq   0
+Decomp flagMZPhase   0
+Decomp flagHighRes   0
+Decomp depthHighRes  0
+Decomp flagMolecular    0
+Decomp freq0IdMin 0 freq0IdMax -1
+Decomp K    1
+Decomp iFMO 5
+Book energy      19.911659
+Book size        1
+Book threshold   0
+ASCII
+End of Header
+ATOMS : octave timeId freqId chirpId innerProdR innerProdI phase g2Cos2 realGG imagGG energy coeff2
+WORDS : dim energy resEnergy coeff2 status
+1 19.9117 1018.38 19.9117 0
+9 512 150 0.976562 0.981074 -2.99889 0.80032 0.5 0 0 19.9117 19.9117

@@ -1,0 +1,215 @@
+#..........................................................................
+#                                                                         
+#      L a s t W a v e    P a c k a g e 'misc' 2.0
+#
+#      Author Emmanuel Bacry                                               
+#      
+#..........................................................................
+
+
+#
+#
+# Create a simple box class
+#
+# 
+
+
+# Some default values
+gclass.Box.default.bg="BG"
+
+
+#
+# Answering the messages for boxes 
+#
+setproc _GBoxMsge {obj message .l} {
+
+  # The help 
+  if (obj == "?") {
+    return "{{{set <val>} {Changes the string that is displayed.}}}"
+  }
+  
+  id=[msge $obj id]
+
+  if (message == "init") {
+    fields = [new &array]
+    fields.centered=0
+    fields.string=""
+    setv gclass.Box.${id} fields -l 1
+    import args 1 gclass.Box.default
+    setg $obj -bg default.bg
+    return 1
+  }
+  
+  if (message == "delete") {
+    delete 1 gclass.Box.$id
+    return 1
+  }  
+
+  if (message == "set") {
+    setgu $obj -string l[0]
+    return [setg $obj -string]
+  }  
+}
+
+
+#
+#
+# The Drawing method
+#
+setproc _GBoxDraw {obj .l} {
+
+  {w h}=[setg $obj -size]
+  str = [setg $obj -string]
+  centered = [setg $obj -centered]
+
+  if (centered) {
+    draw string $obj str middle w/2 middle h/2
+  } else {
+    draw string $obj str left 5 middle h/2
+  }
+}
+
+
+#
+# Setting or Getting the fields of boxes
+#
+setproc _GBoxSet {obj field .l} {
+
+  # The help 
+  if (obj == "?") {
+    return "{{{string [<val>]} {Sets/Gets the string that will be displayed in the box.}} \
+{{centered [<flagOnOff>]} {Sets/Gets the centered flag. If 1 then the string will be centered in the box both vertically and horizontally. \
+If 0 then it will be centered vertically but justified at a distance of 5 to the left border.}}}"
+  }
+    
+  id=[msge $obj id]
+  import args 1 `gclass.Box.$id fields`
+
+  if (field == "centered") {
+    if (l.length == 0) {
+      return fields.$field
+    }    
+    fields.$field=l[0]
+    return 1
+  } 
+
+  if (field == "string") {
+    if (l.length == 0) {
+      return fields.string
+    }   
+    if (type(l[0]) == '&string') { 
+      fields.string=l[0]
+    } else {
+      sprintf fields.string "%V" l[0]
+    }    
+    return 1
+  } 
+}
+
+
+gclass new Box GObject %_GBoxSet %_GBoxMsge %_GBoxDraw "Graphic Class to display (clipped) text in a box"
+proc delete %_GBoxSet %_GBoxMsge %_GBoxDraw
+ 
+
+#
+#
+# Inherit a numbox from the box
+#
+#
+
+
+#
+# Answering the messages for numboxes 
+#
+setproc _GNumboxMsge {obj message .l} {
+
+  # The help 
+  if (obj == "?") {
+    return "{{{set <val>} {Changes the value that is displayed.}}}"
+  }
+
+  id=[msge $obj id]
+  
+  if (message == "init") {
+    setg $obj -val 0
+    return 1
+  }
+
+  import args 1 `gclass.Box.$id fields`
+    
+  if (message == "set") {
+    setgu $obj -val l[0]
+    return [setg $obj -val]
+  }  
+
+  if (message == "incr") {
+    if (l.length == 0) {
+      i=1
+    } else {
+      if (type(l[0]) != '&num') {errorf "Expect a number as argument"}
+      i = l[0]
+    }
+    setgu $obj -val [setg $obj -val]+i
+    return [setg $obj -val]
+  }  
+}
+
+
+#
+# Setting or Getting the fields of boxes
+#
+setproc _GNumboxSet {obj field .l} {
+
+  # The help 
+  if (obj == "?") {
+    return
+  }
+  
+  id=[msge $obj id]
+  
+  import args 1 `gclass.Box.$id fields`
+
+  if (field == "val") {
+    if (l.length == 0) { 
+      return fields.val       
+    }
+    if (type(l[0]) != '&num') {errorf "Expect a number for field 'val'"}
+    fields.val = l[0]
+    setg Box:$obj -string l[0]
+    return 1
+  }  
+
+  if (field == "string") {
+    if (l.length == 0) { 
+      # Let the Box do the job 
+      return
+    }
+    return 1
+  }  
+
+}
+
+gclass new Numbox Box %_GNumboxSet %_GNumboxMsge null "Graphic Class to display a numerical value in a box"
+proc delete %_GNumboxSet %_GNumboxMsge 
+
+
+#
+#
+# A simple example
+#
+#
+
+#if ([msge ex exist]) {
+#  msge ex delete
+#}
+  
+#window new 'ex' -title "Box and Numbox gobjects" -pos 100 100 -size 200 200
+
+#msge ex add 'l1' GList -pos 50 50 -size 120 120 -frame 1
+#msge ex.l1 add 'b' Box -pos 50 50 -size 40 40 -string "box" -frame 1 -pen 3
+#msge ex.l1 add 'n' Numbox -pos 5 5 -size 40 40 -frame 1 -pen 3 -val 12
+ 
+#msge ex show
+
+
+

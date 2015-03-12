@@ -1,0 +1,155 @@
+#..........................................................................
+#                                                                         
+#      L a s t W a v e    P a c k a g e 'disp' 2.0
+#
+#      Author Emmanuel Bacry                                               
+#      
+#..........................................................................
+
+
+
+
+
+##########################################################
+#  
+#
+###########################################################
+
+# Procedure to add a drawing command to a group
+#   object : the object the drawing is linked with
+#   group  : the group name
+#   command : the drawing command
+#   flagDraw : if YES then the command will be executed
+
+setproc SuperposeAdd1 {{&word object} group command {flagDraw 1}} \
+"{{{*gobject* <group> <script>} {Adds a script to be executed whenever the gobject *gobject* is drawn. The <group> is the name of the group the scripts belongs to.}}}" \
+{
+
+  # Import the right variable
+  id=[msge $object id]
+  import args 1 &array `gclass.GObject.${id}.superpose.${group} g`
+  
+  # Get the first available index in the 'g'
+  i=1
+  while (1) {
+    if (![var exist g.$i]) {break}
+    i+=1
+  }
+  
+  # Just set it
+  g.$i=command
+  
+  # Then execute the corresponding command
+  if (flagDraw) {
+    c = command+" -clip"
+    eval %%$c
+  }
+}  
+
+# Procedure to draw all the commands associated to a group
+#   object : the object the drawing is linked with
+#   group  : the group name (it can be a filter using wild card)
+#   flagCurClip : if YES then the current clip must be used, otherwise the object clip must be used
+setproc _SuperposeDraw {{&word object}  {group '*'} {flagCurClip 1}} {
+
+  # If the variable superpose does not exist just return
+  id=[msge $object id]
+  if (![var exist 1 gclass.GObject.${id}.superpose]) {return}
+
+  # Import the right variable
+  global gclass.GObject.${id}.superpose
+
+  
+  # Get the list of groups that matches the filter 'group'
+  list=[array list superpose group]
+  
+  # then loop on it
+  foreach g list {
+    
+    # if the variable does not exist then just continue
+    if (![var exist superpose.$g]) {continue}
+    
+    # Otherwise we must execute all the commands
+    ilist=[array list superpose.$g]
+    foreach i ilist {
+      if (flagCurClip) {
+        c = superpose.${g}.$i
+      } else {
+        c = superpose.${g}.$i+" -clip"
+      } 
+      eval %%$c
+    }
+  }
+} 
+
+# Delete a group of drawing commands
+#   object : the object the drawing is linked with
+#   group  : the group name (it can be a filter using wild card)
+#   flagErase : if YES then the group will be erased
+
+setproc SuperposeDelete {{&word object} group {flagErase 1}} \
+"{{{*gobject* <group>} {Deletes all the scripts associated to the group <group>.}}}" \
+{
+
+  # If the variable superpose does not exist just return
+  id=[msge $object id]
+  if (![var exist 1 gclass.GObject.${id}.superpose]) {return}
+
+  # if flagErase then must start by erasing the group
+  if (flagErase) {_SuperposeDraw $object group 0}
+  
+  # Import the right variable
+  global gclass.GObject.${id}.superpose
+  
+  # Get the list of groups that matches the filter 'group'
+  list=[array list superpose group]
+  
+  # then loop on it
+  foreach g list {
+    
+    # if the variable does not exist then just continue
+    if (![var exist superpose.$g]) {continue}
+    
+    # Otherwise we delete it
+    var delete superpose.$g
+  }
+
+  # We must delete the superpose variable if no other index
+  _DeleteEmptyGlobalArray  gclass.GObject.${id}.superpose
+
+  # We must delete the id variable if no other index
+  _DeleteEmptyGlobalArray  gclass.GObject.${id}
+} 
+  
+
+# Replace a group by a command    
+#   object : the object the drawing is linked with
+#   group  : the group name 
+#   command  : the command 
+#   flagDraw : if YES then the command will be drawn 
+setproc _SuperposeReplace {{&word object} group command {flagDraw 1}} {
+
+  # We start by deleting the group
+  SuperposeDelete $object group 
+  
+  # Then we add
+  SuperposeAdd1 $object group command flagDraw
+}  
+
+   
+# Declare a class as allowing superpossition => activate some bindings
+setproc SetSuperposeBindings {{&word class}} \
+"{{{*gclass*} {Allows superposing drawing to graphic class *gclass*. If you call this procedure then each time \
+a gobject of class *gclass* will be drawn, you can ask that a script is called (e.g., to draw something on top of it). \
+The scripts are specific to the *gobject* themselves. However, you can group them into groups to delete them at once. \
+You can use the procedure 'SuperposeAdd1' to trigger a script for a specific gobject and 'SuperposeDelete' to delete a group of scripts}}}" \
+{
+
+  binding delete 'superpose' $class
+
+ setbinding 'superpose' $class draw {_SuperposeDraw @object '*' 1}
+ setbinding 'superpose' $class delete {SuperposeDelete @object '*'}
+
+  binding activate 'superpose' $class
+}
+

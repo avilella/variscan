@@ -1,0 +1,15 @@
+
+
+
+
+# We first create the new 'terminal' package
+if ([package list 'terminal'].length==0) {
+  package new 'terminal' 1998 '2.0' "E. Bacry" "Package that regroups all the bindings for managing terminal history, help and file completion \
+systems. It just adds bindings to LastWave. It almost does not include any script commands \
+that can be directly callable \
+(most of the names of the script commands that are defined in this package start with a '_'). \
+You can change the script file 'scripts/terminal/keys' to redefine the keys associated to the bindings."
+}
+
+# Then just load it !
+package load 'terminal'

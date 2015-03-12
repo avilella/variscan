@@ -1,0 +1,411 @@
+#..........................................................................
+#                                                                         
+#      L a s t W a v e    P a c k a g e 'disp' 2.0.4
+#
+#      Author Emmanuel Bacry                                               
+#                                                                          
+#..........................................................................
+
+
+#
+# Function that computes the maximum boundary rectangle given a list of views
+# and eventually an xMin and xMax
+# It returns a listv {xMin xMax yMin yMax}
+#
+
+setproc _GetMaxBoundView {list {xMin 1} {xMax -1}} {
+
+  # Since 'list' is a listv of regexp, we must expand it
+  list1 = {}
+  foreach l list {
+    ll = [msge $l name]  
+    foreach lll ll {
+      list1 += lll
+    }
+  }
+  list = list1
+  
+  if (xMin > xMax) {
+    x0="?"
+    x1="?"
+  } else {
+    x0=xMin
+    x1=xMax
+  }  
+  
+  first=1
+
+  foreach v list {
+
+    if (type(x0) == '&string') {
+      rect=[setg $v -?bound '?' '?' '?' '?']
+    } else {
+      rect=[setg $v -?bound x0 x1 '?' '?']
+    }
+
+    if (first) {
+      {xMin xMax yMin yMax}=rect
+      first=0
+    } else {
+      val=rect[0]
+      if (val<xMin) {xMin=val}
+      val=rect[2]
+      if (val<yMin) {yMin=val}
+      val=rect[1]
+      if (val>xMax) {xMax=val}
+      val=rect[3]      
+      if (val>yMax) {yMax=val}
+    }
+  }
+  
+  return {xMin xMax yMin yMax}
+}
+
+
+
+
+#
+# We create a new View class called EView (for Extended View) mainly to be able to redirect 
+# some fields and messages. Mainly :
+#   You will be able to synchronize the bounds (xMin xMax yMin and yMax) of a list of eviews using the 
+# 'synchro' command.
+#   When used in FramedViews (see the framedView source file), the framed views will add axis to the eview. These
+# axes will be automatically updated when changing the bounds of the eview.
+#  The -string field will adress the -string fields of the framed view if the eview is included in
+# a framed view.
+#
+# 
+
+
+# Some default values
+gclass.EView.default.bg="BG"
+
+
+#
+# Answering the messages for EViews 
+#
+setproc _GEViewMsge {obj message .l} {
+
+  if (obj == "?") {return}
+
+  if (message == "init") {
+    global gclass.EView.default
+    setg $obj -bg default.bg
+    return 1
+  } 
+}
+
+#
+# The redefinition of the -bound and -string field 
+#
+setproc _GEViewSet {obj field .l} {
+
+  if (obj == "?") {
+    return "{{{boundNoSync <xMin> <xMax> <yMin> <yMax>} {Changes the boundaries without synchronization of eventual other EViews}} \
+{{bound <xMin> <xMax> <yMin> <yMax>} {Changes the boundaries of the eview and synchronizes eventual other EViews.}} \
+{{string [<string>]} {Works exactly the same way as '-string' field for the Box inside the FramedView which contains the EView.}}}"
+  }
+
+
+  # The -boundNoSync field (same as -bound without synchro)
+  if (field == "boundNoSync") {
+  
+    # if no argument then let's do a -bound View 
+    if (l.length==0) {
+      return [setg View:$obj -bound]
+    }
+    
+    # else if it is not in a FramedView, we again perform the View method
+    if (![msge ${obj}.^ class 'FramedView']) {
+      setg View:$obj -bound l[0] l[1] l[2] l[3]
+      return 1
+    }
+
+    #else we send the method to the FramedView
+   setg ${obj}.^ -boundNoSync l[0] l[1] l[2] l[3]
+
+    return -1
+  }  
+  
+  # The -bound field
+  if (field == "bound") {
+  
+    # if no argument then let the View method be called
+    if (l.length==0) {return}
+    
+    # We must get the list for synchronization
+    name=[msge $obj name]
+    
+    # Then get the matching synchro list   
+    list=[synchro get name]
+    if (list.length==0) {list={'x' {obj}}}
+    
+    # Get the 4 parameters of the -bound (xMin xMax yMin yMax)
+    {l1 l2 l3 l4}=l
+
+    # Are the first two arguments (xMin xMax) ? and ? 
+    #  Are the first two arguments (xMin xMax) * and * 
+    flagQuestion = 0
+    flagStar = 0
+    if (type(l1) == '&string' && type(l1) == '&string') {
+      if (l1 == '?' && l2 == '?') {
+        flagQuestion = 1
+      } elseif (l1 == '*' && l2 == '*') {
+        flagStar = 1
+      }
+    }
+
+    # Get the bounding rect of the original obj
+    r1=[setg View:$obj -bound]
+
+    # If any of the first two is ?, we must call  _GetMaxBoundView 
+    if (('?' == '$l1') || ('?' =='$l2')) {
+      mr=[_GetMaxBoundView list[1]]
+    }
+
+    # Treat the first argument (xMin)
+    if ('?' == '$l1') {
+      l1=mr[0]
+    } elseif ('*' == '$l1') {
+      l1=r1[0]
+    } 
+
+    # Treat the second argument (xMax) in the same way
+    if ('?' == '$l2') {
+      l2=mr[1]
+    } elseif ('*' == '$l2') {
+      l2=r1[1]
+    }
+    
+    #
+    # If an x-synchronization is asked then l3 and l4 now are set to the right values
+    #
+    objname = [setg $obj -name]
+    if (list[0] == 'x') {
+      
+      # Now we loop on the list of eviews if necessary
+      if (!flagStar) {
+        list = list[1]
+        foreach o list {    
+          objlist = [gclass objlist '*' $o]
+          foreach o objlist {
+            if (o == objname) {continue}
+            setg $o -boundNoSync l1 l2 '?' '?'
+          }
+        }        
+      }
+
+      # Then perform the zoom on the view
+      setg $obj -boundNoSync l1 l2 l3 l4
+      
+    } else {
+      #
+      # Case an xy-synchronization is asked   
+      #
+      
+      # If the first 2 arguments (xMin xMax) were not ? ? 
+      # and if one of the two last is ? we must call _GetMaxBoundView again
+      if (!flagQuestion && (('?' == '$l3') || ('?' == '$l4'))) {
+        mr=[_GetMaxBoundView list[1] l1 l2]
+      }
+
+      # Treat the third argument (yMin)
+      if ('?' == '$l3') {
+        l3=mr[2]
+      } elseif ('*' == '$l3') {
+        l3=r1[2]
+      }
+
+      # Treat the fourth argument (yMax)
+      if ('?' == '$l4') {
+        l4=mr[3]
+      } elseif ('*' == '$l4') {
+        l4=r1[3]
+      }      
+
+      # Now we loop on the list of eviews
+      list = list[1]
+      foreach o list {    
+        setg $o -boundNoSync l1 l2 l3 l4
+      }
+
+    }
+
+    return 1
+  }  
+
+  # The -string field
+  if (field == "string") {
+  
+    # if it is not in a FramedView, we let the View method be called
+    if (![msge ${obj}.^ class 'FramedView']) {return}
+
+    # if no argument then return the value
+    if (l.length==0) {return [setg ${obj}.^ -string]}
+    
+
+    #else we send the method to the FramedView
+    setg ${obj}.^ -string l[0]
+    return -1
+  }  
+}
+
+gclass new EView View %_GEViewSet %_GEViewMsge null "Graphic Class that extends the View class so that one can synchronize the \
+x or/and y-scales between different EViews. This class is used in FramedViews."
+
+proc delete %_GEViewSet %_GEViewMsge
+
+
+#
+#
+# Function to synchronize the -bound of different eviews
+#
+#
+
+setproc synchro {{&word action} .l} "{\
+{{add {x | xy} <gobject> <eviewList>} {Adds a x or/and  y-scale synchronisation between eviews of <eviewList>. \
+Each time the boundaries of an eview in <eviewList> is changed, all the other ones will be changed accordingly. \
+If 'x' is the first argument then only the xMin and xMax boundaries are synchronized. \
+If it is 'xy' then xMin, xMax, yMin and yMax are synchronized. If <gobject> is not \"\" then this synchronization \
+is automatically deleted when <gobject> is deleted. \
+Let\\'s note that one can use wild card characters in <eviewList>. This command returns a number that is associated \
+to this newly defined synchronization (This number can be used with the delete action). \
+** Warning : Only one synchronization definition (the first one found) will be used when changing the boundaries of an eview. They are not called recursively.}} \
+{{list} {Displays all the currrently active synchronization}} \
+{{delete <n>} {Deletes the synchronization number <n>}} \
+{{get <eviewName>} {Gets the synchronization definition that must satisfy the eview <eviewName>. The first one found is returned.}}}" {
+
+  global &array gclass.EView.synchro
+  
+  #
+  # Adding a new synchro in the list 
+  # The syntax is 
+  #    synchro add <type> <gobject> <eviewListv> 
+  #
+  if (action == "add") {
+
+    # Get the first available index 
+    i=1
+    while (1) {
+      if (![var exist synchro.$i]) {break}
+      i+=1
+    }
+
+    # Set the <eviewList> synchro 
+    synchro.$i=l
+    if ([var exist synchro.n]) {synchro.n+=1} else {synchro.n=1}
+    
+    # Set the delete binding if needed
+    gobj=l[1]
+    if (gobj != "") {
+      if (![msge $gobj exist]) {errorf "Sorry, gobject '%s' does not exist" gobj}
+      setbinding 'synchro$i' $[msge $gobj class] delete %%`if ('$gobj' == @objname) \{synchro delete $i\}`
+      binding activate 'synchro$i'
+    }
+    
+    return i
+  }
+  
+  #
+  # Displays the list of existing synchros
+  # No Argument
+  #
+  if (action == 'list') {
+
+    if (![var exist synchro.n]) {return}
+    
+    # Get the synchro index 
+    synchroIndex=[array list synchro]
+    
+    # Loop for display
+    foreach index synchroIndex  {
+       if (index == "n") {continue}
+       l = synchro.$index
+       printf "%d : mode='%s' obj='%s' list=%V\n" index.tonum l[0] l[1] l[2]
+    }
+    return
+  }
+  
+  #
+  # Asks for deletion of the synchro <i> or all of them
+  # The syntax is 
+  #   synchro delete {<i> | 'all'}
+  #
+  if (action == "delete") {
+
+    # Case we want to delete all of them 
+    l = l[0]
+    if (type(l) == '&string') {
+      if ('all' == l) {
+        if (![var exist synchro]) {return}
+        var delete 1 gclass.EView.synchro
+        binding delete 'synchro*'
+        return
+      }
+    }
+    
+    # Case we want to delete a single synchro
+    if (![var exist synchro.$l]) {return}
+    var delete synchro.$l
+    binding delete 'synchro$l'
+    synchro.n-=1
+    return
+  }
+  
+  #
+  # Gets the matching synchro to a given eview name. It returns {<type> <eviewList>}
+  # The syntax is
+  #   synchro get <eviewName>
+  #
+  if (action == "get") {
+    if (![var exist synchro.n]) {return {}}
+
+    # Get the synchro index 
+    synchroIndex=[array list synchro]
+    
+    # Get the eview name
+    l = l[0]
+    name=[msge $l name]
+    
+    # Loop on them
+    foreach index synchroIndex  {
+
+      if (index == "n") {continue}
+      
+      # Get the corresponding list of eview names
+      u = synchro.$index
+      foreach uu u[2] {
+        list=[msge $uu name]
+      
+        # If they match the <eviewName> then return
+        foreach v list {
+          if ([str match name '^'+v+'\$'].length!=0) { 
+            return {u[0] u[2]}
+          }
+        }
+      }
+      
+    }
+    return {}   
+  }
+}
+
+
+#
+# Enter and Leave Bindings to activate cursors and zooms on eviews
+#
+
+binding delete 'eview'
+
+setbinding 'eview' EView enter { 
+   binding activate 'cursor'
+   binding activate 'zoom'
+}
+
+setbinding 'eview' EView leave { 
+   binding deactivate 'cursor' 
+   binding deactivate 'zoom'
+}
+
+binding activate 'eview'
+

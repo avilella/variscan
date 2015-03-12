@@ -1,0 +1,338 @@
+#..........................................................................
+#                                                                         
+#      L a s t W a v e    P a c k a g e 'misc' 2.0
+#
+#      Author Emmanuel Bacry                                               
+#      
+#..........................................................................
+
+#
+#
+# Create a very general button class
+#
+# 
+
+
+
+
+# Some default values
+gclass.Button.default.colorOff='grey'
+gclass.Button.default.colorOn='lightgrey'
+
+
+#
+# The default drawing method for 'plain' buttons
+#
+setproc _GButtonDrawPlain {obj} {
+
+  id=[msge $obj id]
+  global `gclass.Button.$id struct`
+   
+  {w h}=[setg $obj -size]
+
+  if (struct.state == 0) {  
+    draw rect $obj 0 0 w h -fill -color struct.colorOff
+  } else {
+    draw rect $obj 0 0 w h -fill -color struct.colorOn
+  }
+  
+   draw string $obj struct.title middle w/2 middle h/2 
+   draw rect $obj 0 0 w h -color 'black'
+}
+
+setproc _GButtonDraw3d {obj} {
+
+  id=[msge $obj id]
+  global `gclass.Button.$id struct`
+   
+  {w h}=[setg $obj -size]
+
+    if (struct.state == 0) {  
+      draw rect $obj 0 0 w h -fill -color struct.colorOff
+      draw line $obj 0 0 w 0 -color 'verylightgrey'
+      draw line $obj 0 0 0 h -color 'verylightgrey'
+      draw line $obj w-1 h-1 w-1 0 -color 'darkgrey'
+      draw line $obj w-1 h-1 1 h-1 -color 'darkgrey'
+    } else {
+      draw rect $obj 0 0 w h -fill -color $struct.colorOn
+      draw line $obj 0 0 w 0 -color 'darkgrey'
+      draw line $obj 0 0 0 h -color 'darkgrey'
+      draw line $obj w-1 h-1 w-1 0 -color 'verylightgrey'
+      draw line $obj w-1 h-1 1 h-1 -color 'verylightgrey'
+    }
+  
+   draw string $obj struct.title 'middle' w/2 'middle' h/2 
+}
+
+
+#
+# The general Drawing method
+#
+setproc _GButtonDraw {obj .l} {
+
+  id=[msge $obj id]
+  global `gclass.Button.$id struct`
+   
+  if (struct.draw=="") {return}
+  
+  $struct.draw obj 
+}
+
+
+#
+# Answering the messages for buttons 
+#
+setproc _GButtonMsge {obj message .l} {
+
+  # The help 
+  if (obj == "?") {
+    return "{{{on} {Turns the button on.}} \
+{{off} {Turns the button off.}} \
+{{push} {Pushes the button.}}}"
+  }
+
+  id=[msge $obj id]
+
+  if (message == "init") {
+    global gclass.Button.default
+    setv gclass.Button.${id}.state 0 -l 1
+    setv gclass.Button.${id}.title "" -l 1
+    setv gclass.Button.${id}.colorOn default.colorOn -l 1
+    setv gclass.Button.${id}.colorOff default.colorOff -l 1
+    setv gclass.Button.${id}.draw '_GButtonDrawPlain' -l 1
+    setv gclass.Button.${id}.look "3d" -l 1
+    setv gclass.Button.${id}.handle "" -l 1
+    setv gclass.Button.${id}.behavior 'simple' -l 1
+    return 1
+  }
+  
+  if (message == 'delete') {
+    var delete 1 gclass.Button.$id
+    return 1
+  }  
+
+  global `gclass.Button.$id struct`
+  
+  if (message == "on") {
+    if (struct.state == 1) {return 1}
+    struct.state=1
+    msge $obj draw    
+    return 1
+  }  
+
+  if (message == "off") {
+    if (struct.state == 0) {return 1}
+    set struct.state 0
+    msge $obj draw    
+    return 1
+  }  
+
+  if (message == 'push') {
+    struct.state=1-struct.state
+    msge $obj draw
+    _GButtonDoHandle struct
+    return 1
+  }
+}
+
+
+#
+# Setting or Getting the fields of buttons
+#
+setproc _GButtonSet {obj field .l} {
+
+  # The help 
+  if (obj == "?") {
+    return "{{{state [<flagOnOff>]} {Sets/Gets the state flag (1 corresponds to the button pushed).}} \
+{{behavior [switch | simple]} {Sets/Gets the type of button. It is either a 'switch' that has 2 positions (On and Off) or a 'simple' button which behaves like a trigger.}} \
+{{colorOn [<color>]} {Sets/Gets the color that will be used when button is On.}} \
+{{colorOff [<color>]} {Sets/Gets the color that will be used when button is Off.}} \
+{{title [<title>]} {Sets/Gets the label of the button.}} \
+{{draw [<drawProcedure>]} {Sets/Gets the procedure name that will be called to draw the button. \
+This procedure must have 1 argument which corresponds to the name of the button to be drawn. \
+There are two already defined procedure : '_GButtonDrawPlain' for 'plain' button and '_GButtonDraw3d' for 3d buttons \
+(it assumes that the background is 'grey'}} \
+{{handle [<handleProcedure>]} {Sets/Gets the procedure name that will be called whenever the button is pushed. This procedure must have 2 arguments which corresponds to the name of the button to be drawn and its state.}}}"
+  }
+  
+  id=[msge $obj id]
+  global `gclass.Button.$id struct`
+    
+  if (field == 'state') {
+    if (l.length == 0) {
+      return struct.state
+    }    
+    if (type(l[0]) != '&num') {
+      errorf "Bad field value for button %V" l[0]
+    }
+    struct.state= (l[0]!=0)
+    return 1
+  }
+
+  if (field == "behavior") {
+    if (l.length == 0) {
+      return struct.behavior
+    }    
+    if (type(l[0]) != '&string') {
+      errorf "Bad field value for button %V" l[0]
+    }
+    if (l[0] != 'switch' && l[0] != 'simple') {
+      errorf "Bad field value for button %V" l[0]
+    }
+    struct.behavior=l[0]
+    return 1
+  }
+  
+  if ((field == 'colorOn') || (field == 'colorOff') || (field == 'title') ||\
+      (field == 'draw') || (field == 'handle')) {
+    if (l.length == 0) {
+      return struct.$field
+    }    
+    if (type(l[0]) != '&string') {
+      errorf "Bad field value for button %V" l[0]
+    }
+    struct.$field=l[0]
+    return 1
+  }
+}
+
+
+# A simple command to wait a certain amount of time
+setproc wait {t} "{{{<delay>} {Returns after a certain numlber of seconds specified by <delay>}}}" { 
+  t1=[time]
+  while (t1 + t >= [time]) {}
+}
+
+
+gclass new Button GObject %_GButtonSet %_GButtonMsge %_GButtonDraw "Graphic Class to implement buttons"
+proc delete %_GButtonSet %_GButtonMsge %_GButtonDraw
+
+
+#
+# 
+# Now we deal with the bindings
+#
+#
+
+
+binding delete 'button'
+
+setbinding 'button' "{{Click on the button using the left mouse button}}"
+setbinding 'button' Button leftButtonDown {_GButtonButtonDown}
+setbinding 'button' Button leftButtonUp {_GButtonButtonUp}
+setbinding 'button' Button leftButtonMotion {_GButtonButtonMotion}
+
+setproc _GButtonDoHandle {struct} {
+  if (struct.handle=="") {return}
+  $struct.handle @objname struct.state
+}
+
+setproc _GButtonButtonDown {} {
+  id=[msge @object id]
+  global `gclass.Button.${id} struct`
+  
+  if (struct.behavior == 'simple') {
+    
+    struct.state=1-struct.state
+    msge @object draw 
+
+    wait .2 
+  
+    struct.state=1-struct.state
+    msge @object draw
+    
+    _GButtonDoHandle struct
+    return
+  }
+  
+  if (struct.behavior == 'switch') {
+    
+    struct.state=1-struct.state
+    struct.isin=1
+    msge @object draw
+  }
+    
+}
+
+setproc _GButtonButtonMotion {} {
+
+  id=[msge @object id]
+  global `gclass.Button.${id} struct`
+
+  if (struct.behavior == 'switch') {    
+    if ([msge  @object isin @x @y]) {
+      if (struct.isin) {return}
+    } else {
+      if (!struct.isin) {return}
+    } 
+
+    struct.state = 1-struct.state
+    struct.isin = 1-struct.isin
+       
+    msge @object draw 
+  }
+}
+
+setproc _GButtonButtonUp {} {
+
+  id=[msge @object id]
+  global `gclass.Button.${id} struct`
+
+  if (struct.behavior == 'switch') {
+    if (![msge @object isin @x @y]) {return}
+    
+    _GButtonDoHandle struct
+  }
+}
+
+
+binding activate 'button'
+
+
+if ([msge bibi exist]) {
+  msge bibi delete
+}
+  
+
+#
+#
+# A "funny" drawing procedures for buttons (using the standard colormap as the background for buttons)
+# 
+#
+
+setproc _GButtonDrawCM {obj} {
+
+  id=[msge $obj id]
+  global `gclass.Button.$id struct`
+   
+  {w h}=[setg $obj -size]
+
+  {x y}=[setg $obj -pos]
+
+  draw gobject $[msge $obj father] Colormap -pos x y -size w h
+  
+  if (struct.state == 1) {
+    draw rect $obj 0 0 w h -fill -mode 'inverse'
+  }
+  
+  draw string $obj struct.title middle w/2 middle h/2 
+  draw rect $obj 0 0 w h
+}
+
+
+#
+#
+# A simple example
+#
+#
+
+#window new 'bibi' -pos 100 100 -size 200 200
+
+#msge bibi add 'l1' GList -pos 20 20 -size 100 100 -frame 1
+#msge bibi.l1 add 'b1' Button -pos 50 50 -size 40 40 -fg 'black' -title 'OK' -handle 'bingo' -behavior 'simple' -pen 2
+#msge bibi.l1 add 'b' Button -pos 3 3 -size 40 40 -fg 'black' -title 'Funny' -handle 'bingo' -behavior 'switch' -pen 2 -draw '_GButtonDrawCM'
+
+#setproc bingo {obj state} {echo Bingo $state}
+ 
+#msge bibi show
+

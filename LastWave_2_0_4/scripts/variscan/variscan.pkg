@@ -1,0 +1,106 @@
+#..........................................................................
+#                                                                         
+#      L a s t W a v e    P a c k a g e 'variscan' 1.0
+#
+#      Author Albert Vilella                                               
+#      
+#
+#                                                                    
+#..........................................................................
+
+# LastWaveDocumentation Chapter 2.6: Assignment of signals or images. pag 35.
+
+# LastWaveDocumentation Chapter 7: Defining new commmands using the command language. pag 79:
+
+#Wrapping from: read <signalOut> (<filename> | <stream>) [[<xCol>] <yCol>] [-f <firstPoint>]
+setproc vscan_read {{&signal signal} {&signal ref} {&string s_signal}} '{{{<signalout> <refout> <string>} {Open a vscan source signal. This is a wrapper for the basic read function}}}' {
+    printf '%V\n' s_signal
+#     signal = [new &signal]
+#     ref = [new &signal]
+    read signal s_signal 2
+    read ref s_signal 1
+}
+
+# setproc my {} {
+#     return urand
+# }
+
+
+setproc my2 {{&num arg} {&num optional_arg 0}} {
+    return arg+optional_arg
+}
+
+
+# setproc my3 {{&word action} i} {
+#     if (action=='str') {return i+'1'}
+#     if (action=='num') {return i+1}
+#     errorf 'unknown action %s' action
+# }
+
+
+# # dynamic type checking:
+# setproc my4 {{&word action} i} {
+#   if (action=='str') {
+#     if ([val type i]=='&string') {return i+'1'}
+#     errorf 'Bad type %s for second argument' [val type i]
+#   }
+#   if (action=='num') {
+#     if ([val type i]=='&num') {return i+1}
+#     errorf 'Bad type %s for second argument' [val type i]
+#   }
+#   errorf 'unknown action %s' action
+# }
+
+
+# #variable number of arguments - a dot
+# setproc my5 {arg1 .l} {
+#     printf 'arg1=%V, l=%V\n' arg1 l
+# }
+
+
+# #specifying usage
+# setproc my6 {n} '{{{<n>} {Adding 10 to <n>}}}' {
+#     return n+10
+# }
+
+
+# #access by reference
+# setproc mul2 {{&var v}} {
+#     v*=2
+# }
+# #instead of the usual access by value
+# setproc mul3 {{&num v}} {
+#     v*=2
+# }
+# #or using import
+# # setproc mul4 {&word vname} {
+# #   import '$vname v'
+# #   if (v==null) {v = 0} else {v*=2}
+# # }
+
+
+# #import a global variable
+# # You could either do
+# #     import args 1 `*globalVarName* [*newVarName*]`
+# # #    or use the global command
+# #     global `*globalVarName* [*newVarName*]`
+
+
+# # copy commands
+# aaa = [my]
+
+# # like when creating a new value of any type
+# e = [new &wtrans]
+
+# # deleting
+# delete e
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,166 @@
+#..........................................................................
+#                                                                         
+#      L a s t W a v e    K e r n e l  2.0
+#
+#      Author Emmanuel Bacry  
+#
+#      Startup file                                             
+#                                                                          
+#..........................................................................
+#      Modification of the modules used by Albert Vilella for VariScan 1.0
+#..........................................................................
+# Place this file in LastWave/scripts/startup
+
+
+# Size of the history size
+history size 150
+
+
+#
+# Script that manages the prompt
+#
+setproc _Prompt {} {
+  if (![var exist 1 objCur]) {return `$[history index] > ` -e}
+  import args 1 objCur 
+  type=type(objCur)
+  type=type[1:]
+  if ([val test objCur.name] == null) {return `$[history index] > ` -e}
+  name=objCur.name
+  return `$[history index] $type $name> ` -e
+}
+terminal prompt %_Prompt
+
+
+#
+# Some system parameters
+#
+
+
+# Case the computer is a mac .... we have to perform some inits
+if (System == 'mac') {
+
+  # In case you have a 3 button mouse, you should assign the left button to the mouse button
+  # the middle button to the Cmd-LeftArrow key and the right one to the Cmd-RightArrow key.
+  # Moreover you should comment out the next line and uncomment the one after.
+  system mouse1
+#  system mouse3
+
+  # In case your keyboard does not send keuUp events you should comment the next line
+  # and uncomment the one after.
+  # This is crucial if you have a 3 button mouse.
+  system noForceKeyUp
+#  system forceKeyUp
+
+  # set the terminal position according to your screen
+  terminal resizewindow 600 250
+  terminal movewindow 3 Display.ScreenRect[3]+40-280
+  
+}
+
+
+# Set the mouse color
+if (System == 'unix') {
+  setcolor -mouse 'red'
+}
+
+
+#
+# Loading and Creating some packages
+#
+
+# Set the mac font
+if (System == 'mac') {
+  font default 'Geneva-9-plain'
+}
+
+
+# We add the '.' path to the scripts directories
+# And we save the initial script directory
+if ([setsourcedirs].length==1) {
+   _scriptDirectory=[setsourcedirs]
+   setsourcedirs  {"." _scriptDirectory[0]}
+}
+
+
+
+#
+# Loading packages
+#
+# You should comment out the lines corresponding to the packages you do not intend to use
+#
+
+#
+# The script packages
+#
+
+
+source terminal/package.def
+
+source misc/package.def
+
+
+source disp/package.def
+
+
+package load 'signal'
+
+# package load 'sound'
+
+# package load 'image'
+
+# package load 'owtrans2d'
+# package load 'compress2d'
+
+# package load 'dwtrans2d'
+
+# package load 'stft'
+# package load 'mp'
+
+package load 'wtmm1d'
+
+package load 'extrema1d'
+package load 'wtrans1d'
+
+source variscan/variscan.pkg
+
+
+
+# Set the current object to the wtrans1d 'a' if it exists
+if ([var exist a]) {objCur = a}
+
+#
+# The C packages
+#
+
+# Initialization of the colormap with 30 colors and make it the current colormap
+if ([colormap list 'color'].length == 0) {
+  cminit 30 1 'color'
+  colormap current 'color'
+}
+
+# if we have some colors left then let's define a grey level color map
+if ([colormap list 'grey'].length == 0) {
+  if ([color nb]-40 >= 256) {
+     cminit 256 0 'grey'
+  } else {
+     if ([color nb] > 40) {
+       cminit [color nb]-40 0 'grey'
+     }
+  }
+}
+
+echo
+echo ------------------------------------------------------------------------------
+echo ***
+echo *** To get some general help on the help system just type 'Help' 
+echo ***
+echo ------------------------------------------------------------------------------
+echo ***
+echo *** To get some help about command line edition capabilities just type 'HelpTerm' 
+echo ***
+echo ------------------------------------------------------------------------------
+echo ***
+echo *** To see some demos just type 'Demo' and follow the instructions !!!!
+echo ***
+echo ------------------------------------------------------------------------------
+echo

@@ -1,0 +1,239 @@
+#..........................................................................
+#                                                                         
+#      L a s t W a v e    P a c k a g e 'signal' 2.0
+#
+#      Author Emmanuel Bacry                                               
+#      
+#      File associated the signal package
+#                                                                    
+#..........................................................................
+
+
+
+# The default position of signal windows
+disp.signali.rect={20 55 330 330}
+
+
+##########################################################
+#  
+# Perform zoom on signals with the mouse
+#  
+##########################################################
+
+SetZoomBindings GraphSignal {'normal' 'rect' 'xrect'}
+
+
+
+##########################################################
+#
+# Perform cursor displaying on signals
+#
+##########################################################
+
+
+setproc __CursorTextSignal {flagFollowCurve obj s x mx index y my} {
+
+ if (!flagFollowCurve) {
+    return "$obj : $mx [x=$x, index=$index] $my [val=$y]" 
+ } else {
+    return "$obj : $x [index=$index] $y" 
+ }  
+}
+
+ 
+setproc _CursorTextGraphSignal {}  {
+  signal = [setg @object -graph]
+  index=signal.index[*no,@x]
+  x=signal.X[index]
+  if (index != signal.size-1) {
+    x1=signal.X[index+1]
+    if (abs(@x-x1) < abs(@x-x)) {
+      index+=1
+      x=x1
+    }
+  }   
+  y=signal.Y[index]
+
+  return [__CursorTextSignal 0 @objname signal x @x index y @y]
+}
+
+setproc _DrawCursorNoneGraphSignal {cursor} {
+  cursor.erase=null
+  return [_CursorTextGraphSignal]
+}
+
+setproc _DrawCursorGraphSignal {cursor}  {
+  _ViewDrawCrossHair cursor.view @x @y
+  cursor.erase = %%`_ViewDrawCrossHair '$cursor.view' $@x $@y`
+  return [_CursorTextGraphSignal]
+}
+
+setproc _DrawCursor1GraphSignal {{&var cursor}}  {
+  signal = [setg @object -graph]
+  index=signal.index[*no,@x]
+  x=signal.X[index]
+  if (index != signal.size-1) {
+    x1=signal.X[index+1]
+    if (abs(@x-x1) < abs(@x-x)) {
+      index+=1
+      x=x1
+    }
+  }   
+  y=signal.Y[index]
+  _ViewDrawCrossHair cursor.view x y
+  cursor.erase = %%`_ViewDrawCrossHair '$cursor.view' $x $y`
+
+  return [__CursorTextSignal 1 @objname signal x 0 index y 0]
+
+  return "$@objname : $x [index = $index] $y  val = $signal[index]"
+}
+
+SetCursorBindings GraphSignal {%_DrawCursorNoneGraphSignal %_DrawCursorGraphSignal %_DrawCursor1GraphSignal}
+
+
+##########################################################
+#
+# Some misc functions to create signals
+#
+##########################################################
+
+setproc sin {{&int size} {&float freq 1}} \
+    "{{{<size> [<freq>=1]} {Returns a sinus function with <freq> oscillations.}}}" \
+{
+  return sin(2*pi*freq*I(size)/size)
+}
+
+setproc dirac {{&int size} .pos} \
+    "{{{<size> [<pos>]} {Returns a dirac function in the middle of the signal.}}}" \
+{
+  if (pos.length==0)  {pos = size/2} else {pos = pos[0]}
+  
+  return Zero(size)+(I==pos)
+}
+
+
+setproc sget {{&word gobject}} \
+     "{{{*GraphSignalObject*} {Returns the signal displayed in *GraphSignalObject* using the actual boundaries}}}" \
+{
+  if (![msge $gobject exist GraphSignal]) {errorf "The graphic object '%s' does not correspond to a signal" gobject}       
+
+  sig = [setg $gobject -graph]
+
+  if (![msge ${gobject}.^ exist View]) {return sig}
+  
+  {x0 x1 y0 y1}=[setg ${gobject}.^ -bound]
+  
+  return sig[*x*no,x0:x1]
+}
+
+
+##########################################################
+#  
+#  Bindings on GraphSignal to draw a line or make a fit
+#
+##########################################################
+
+# Allowing superposition with GraphSignals
+SetSuperposeBindings GraphSignal
+
+
+binding delete 'lineSig'
+
+
+# Procedure to draw in the view 'view' a box  with 
+# the slope of the rectangle x,y,w,h displayed in it 
+setproc  _LineDrawSlopeGObject {{&word view} x y w h} {
+
+  # Set the slope
+  if (w == 0) {slope="slope = infinity"} else {sprintf slope "slope = %g" h/w}
+
+  # Set the box position and size
+  rect=[setg $view -rect]
+  bw=rect[2]
+  bx=rect[0]
+
+  by=rect[1]
+  bx=bx+bw/2-60 
+
+  bw=110
+  bh=19
+    
+  # Just draw it !
+  draw gobject ${view}.^ Box -clip -size bw bh -pos bx by -pen 2 -bg 'lightgrey' -frame 1 -string slope -centered 1
+}
+
+# Line binding when ButtonDown
+setproc _LineDownGraphSignal {} {
+
+  # Are we in a view ? 
+  if (![msge @father class 'View']) {return}
+
+  # Erase a former line if any
+  SuperposeDelete @object 'line'
+  
+  # Just call the drag procedure with a call back to draw the slope-box  
+  _DragShape "@object.^" 'line' "_LineDrawSlopeGObject @object.^"
+}
+
+# Line binding when ButtonMotion
+setproc _LineMotionGraphSignal {} {
+
+  # Are we in a view ? 
+  if (![msge @father class 'View']) {return}
+
+  # Just call the drag procedure
+  _DragShape
+}
+
+
+# Line binding when ButtonUp
+setproc _LineUpGraphSignal {} {
+
+  # Are we in a view ? 
+  if (![msge @father class 'View']) {return}
+  
+  rect=[_DragShape]
+
+  # If empty then just exit
+  if (rect.length==0) {return}
+
+  # Erase the line  
+  {x y w h}=rect
+  draw line @object x y x+w y+h -mode 'inverse'
+  
+  # And add it
+  xw = x+w
+  yh = y+h
+  SuperposeAdd1 @object 'line' "draw line $@objname $x $y $xw $yh -mode 'inverse'"
+}
+
+
+# Ask for a fit
+setproc _LineFitGraphSignal {} {
+
+  # We get the signal and the x-bounds
+  signal = [setg @object -graph]
+  rect=[setg @father -bound]
+  xMin=rect[0] 
+  xMax=rect[1] 
+
+  # We compute the fit
+  res=[stats fit signal -x xMin xMax] 
+  a=res[0]
+  b=res[2]
+  
+  # Add the line
+  yMin = a*xMin+b
+  yMax = a*xMax+b
+  _SuperposeReplace @object 'line' "draw line $@objname $xMin $yMin $xMax $yMax  -mode 'inverse'"
+  _LineDrawSlopeGObject @father xMin a*xMin+b xMax-xMin a*(xMax-xMin)
+}   
+
+setbinding 'lineSig' "{{Shift + Middle button = linear fit} \
+{Shift + Left button = draw a line (just click once to remove it)}}"
+setbinding 'lineSig' GraphSignal leftButtonDown shift %%_LineDownGraphSignal
+setbinding 'lineSig' GraphSignal leftButtonUp shift %%_LineUpGraphSignal
+setbinding 'lineSig' GraphSignal leftButtonMotion shift %%_LineMotionGraphSignal
+setbinding 'lineSig' GraphSignal middleButtonDown shift %%_LineFitGraphSignal
+
+binding activate 'lineSig'

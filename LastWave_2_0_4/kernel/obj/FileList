@@ -1,0 +1,47 @@
+#
+# The name of the package
+#
+PACKAGENAME = kernel
+
+#
+# The specific list of kernel files
+#
+OBJS = $(OBJDIR)commands.$(OBJEXT) \
+$(OBJDIR)int_alloc.$(OBJEXT) \
+$(OBJDIR)int_procs.$(OBJEXT) \
+$(OBJDIR)int_controls.$(OBJEXT) \
+$(OBJDIR)int_error_result.$(OBJEXT) \
+$(OBJDIR)int_eval.$(OBJEXT) \
+$(OBJDIR)int_expr.$(OBJEXT) \
+$(OBJDIR)int_hash.$(OBJEXT) \
+$(OBJDIR)int_history.$(OBJEXT) \
+$(OBJDIR)int_main.$(OBJEXT) \
+$(OBJDIR)int_misc.$(OBJEXT) \
+$(OBJDIR)int_parser.$(OBJEXT) \
+$(OBJDIR)int_package.$(OBJEXT) \
+$(OBJDIR)int_streams.$(OBJEXT) \
+$(OBJDIR)int_toplevel.$(OBJEXT) \
+$(OBJDIR)int_variable.$(OBJEXT) \
+$(OBJDIR)int_value.$(OBJEXT) \
+$(OBJDIR)int_str.$(OBJEXT) \
+$(OBJDIR)int_listv.$(OBJEXT) \
+$(OBJDIR)int_num.$(OBJEXT) \
+$(OBJDIR)int_fsilist.$(OBJEXT) \
+$(OBJDIR)int_range.$(OBJEXT) \
+$(OBJDIR)gobject.$(OBJEXT) \
+$(OBJDIR)color.$(OBJEXT) \
+$(OBJDIR)event.$(OBJEXT) \
+$(OBJDIR)window_manager.$(OBJEXT) \
+$(OBJDIR)terminal.$(OBJEXT)  \
+$(OBJDIR)postscript.$(OBJEXT)
+
+#
+# The specific kernel options
+#
+OPTIONS  = $(CCOPTIONS) -I$(INCLUDEDIR) -I../../package_signal/include -I../../package_image/include  -I../../unix/include -I$(X11INCLUDE)
+
+#
+# The specific dependance
+#
+$(OBJS) $(MULTIDEP) $(INCLUDEDIR)/*.h ../../unix/include/*.h ../../package_signal/include/signals.h ../../package_image/include/images.h
+

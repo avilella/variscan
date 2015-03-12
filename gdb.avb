@@ -1,0 +1,217 @@
+# some gdb canned commands
+
+# last block
+define lb
+
+set $l = vf->vscanBlockList
+set $n = $l->tail
+set $m = (struct vscanBlock *) $n->val
+p *$m
+end
+
+# first block
+define fb
+
+set $l = vf->vscanBlockList
+set $n = $l->head
+set $m = (struct vscanBlock *) $n->val
+p *$m
+end
+
+# next block
+define nb
+
+set $n = $n->next
+set $m = (struct vscanBlock *) $n->val
+p *$m
+end
+
+# prev block
+define pb
+
+set $n = $n->prev
+set $m = (struct vscanBlock *) $n->val
+p *$m
+end
+
+# last info
+define ll
+
+set $l = vf->vscanBlockList
+set $n = $l->tail
+set $m = (struct vscanBlock *) $n->val
+set $ll = $m->vscanInfoList
+set $i = (struct vscanInfo *) $ll->tail->val
+p *$i
+end
+
+# last info in first block
+define llfb
+
+set $l = vf->vscanBlockList
+set $n = $l->head
+set $m = (struct vscanBlock *) $n->val
+set $ll = $m->vscanInfoList
+set $i = (struct vscanInfo *) $ll->tail->val
+p *$i
+end
+
+# first info in last block
+define lllb
+
+set $l = vf->vscanBlockList
+set $n = $l->tail
+set $m = (struct vscanBlock *) $n->val
+set $ll = $m->vscanInfoList
+set $i = (struct vscanInfo *) $ll->head->val
+p *$i
+end
+
+# next info
+define nl
+
+set $n = $n->next
+set $i = (struct vscanInfo *) $n->val
+p *$i
+end
+
+# first seq in first block
+define fsfb
+
+set $l = vf->vscanBlockList
+set $n = $l->head
+set $m = (struct vscanBlock *) $n->val
+set $ll = $m->vscanSeqList
+set $i = (struct vscanSeq) $ll->head->val
+p *$i->dySeq
+end
+
+
+# next seq in same block
+define ns
+
+set $n = $i->node->next
+set $i = (struct vscanSeq) $n->val
+p *$i->dySeq
+end
+
+# prev seq in same block
+define ps
+
+set $n = $i->node->prev
+set $i = (struct vscanSeq) $n->val
+p $i
+end
+
+
+# first seq in last block
+define fslb
+
+set $l = vf->vscanBlockList
+set $n = $l->tail
+set $m = (struct vscanBlock *) $n->val
+set $ll = $m->vscanSeqList
+set $i = (struct vscanSeq) $ll->head->val
+p $i
+end
+
+# last seq in last block
+define lslb
+
+set $l = vf->vscanBlockList
+set $n = $l->tail
+set $m = (struct vscanBlock *) $n->val
+set $ll = $m->vscanSeqList
+set $i = (struct vscanSeq) $ll->tail->val
+p $i
+end
+
+# last seq in first block
+define lsfb
+
+set $l = vf->vscanBlockList
+set $n = $l->head
+set $m = (struct vscanBlock *) $n->val
+set $ll = $m->vscanSeqList
+set $i = (struct vscanSeq) $ll->tail->val
+p $i
+end
+
+# next block first seq
+define nbfs
+
+set $n = $n->next
+set $m = (struct vscanBlock *) $n->val
+set $ll = $m->vscanSeqList
+set $i = (struct vscanSeq) $ll->head->val
+p $i
+end
+
+# previous block first seq
+define pbfs
+
+set $n = $n->prev
+set $m = (struct vscanBlock *) $n->val
+set $ll = $m->vscanSeqList
+set $i = (struct vscanSeq) $ll->head->val
+p $i
+end
+
+
+# in memory group of vars
+define mm
+
+p "filled_in_memory"
+p filled_in_memory
+p "spanning_widthSW"
+p spanning_widthSW
+p "first_in_memory"
+p first_in_memory
+end
+
+# p dlCount($l)
+
+# vps
+define vps
+
+p *vf->vpa->vps
+end
+
+# vpa
+define vpa
+
+set $i = vpa->filled
+set $numseq = vf->numSeq
+set $size = vpa->size
+p "filled "
+p (vpa->filled)+1
+p "p *vpa->polyArray[$i]@$numseq"
+p *vpa->polyArray[$i]@$numseq
+end
+
+# vpa
+define vpa
+set $m = vf->vpa
+p *$m
+end
+
+# allvpa
+define allvpa
+set $m = vf->vpa
+set $i = (vf->vpa->filled)-1
+set $numseq = vf->numSeq
+set $size = vf->vpa->size
+p "filled "
+p ($m->filled)+1
+p "p *$m->polyArray[$i]@$numseq"
+p *$m->polyArray[$i]@$numseq
+p "p **$m->polyArray@($numseq*$size)"
+p **$m->polyArray@($numseq*$size)
+end
+
+# # sumf - sum of all vb->filled in memory
+# define sumf
+# set $sum = 0
+# set $l = vf->vscanBlockList
+# set $n = $l->head
+# set $m = (struct vscanBlock *) $n->val

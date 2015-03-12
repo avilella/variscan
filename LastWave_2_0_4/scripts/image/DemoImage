@@ -1,0 +1,47 @@
+############################################################################
+#
+# Demo file for the image package
+#
+############################################################################
+
+setproc DemoImageDisp {} "{{{} {Demo that displays different images and teaches you what you can do with the mouse}}}" {
+  StartDemo DemoImageDisp
+}
+
+setproc _DemoImageDisp0 {} {
+  
+  i1 = [new &image]
+
+  global _scriptDirectory
+  _scriptDir = _scriptDirectory[0]
+
+  # Read the image we want to compress
+  # (The '-c' option means that the file contains characters coding 
+  # grey levels between 0 and 255)
+  iread i1 '${_scriptDir}/image/lenna.char' -c
+
+  # Display it
+  disp i1 -..1 -cm 'grey'
+
+  import args 1 System
+
+  printf "\nIf you want to learn how these graphs were generated look at the procedure \
+'_DemoImageDisp0' in the file 'scripts/image/DemoImage'\n"
+
+}
+
+setproc _DemoImageDisp1 {} {
+printf "You can try the different mouse cursor modes on the graphs of the images \
+just hitting the 'c' key while the mouse pointer being in the graphs \
+(there are 2 modes : none, cross-hair (follow the pointer)\n."
+}
+
+setproc _DemoImageDisp2 {} {
+printf "You can zoom any image : use the left button + drag and drop to zoom in and the middle one to zoom out. \n\
+You can change the zoom mode by hitting the 'z' key over any graph. \n\
+There are 3 modes : default (just described above), the x constrained-rect mode (the abscissa are constrained) \
+the y constrained-rect mode (the ordinate are constrained) \
+is constrained).\n"
+}
+
+help DemoImageDisp

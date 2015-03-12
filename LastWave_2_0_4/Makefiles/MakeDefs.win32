@@ -1,0 +1,34 @@
+# --- Libraries ---
+LIBS=  -lm -lwinmm
+
+# --- Includes ---
+X11INCLUDE =
+JAVA_SYSTEM_INCLUDE = -Ic:\j2sdk1.4.0\include -Ic:\j2sdk1.4.0\include\win32
+
+# ---
+CC = bcc32
+
+# --- Flags for cc ---
+CCOPTIONS = -O -DWIN32 -g0 -j0
+
+# ---
+MAKE = make
+RM   = del
+MV   = move
+CP   = copy
+
+OBJDIR     = .\$(ARCH)\\
+SRCDIR     = ..\src\\
+INCLUDEDIR = ..\include\\
+OBJEXT     = obj
+
+# The path for the executable/libraries
+JAVAPATH   = $(LWPATH)\bin\\
+BINPATH    = $(LWPATH)\bin\$(ARCH)\\
+LIBPATH    = $(LWPATH)\lib\$(ARCH)\\
+LIBEXT     = lib
+SHAREDEXT  = dll
+EXEEXT     = exe
+
+MULTIDEP   = ::
+

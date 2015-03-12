@@ -1,0 +1,273 @@
+
+#..........................................................................
+#                                                                         
+#      L a s t W a v e    P a c k a g e 'disp' 2.0
+#
+#      Author Emmanuel Bacry                                               
+#                                                                          
+#..........................................................................
+
+#
+# File to manage zooms of objects in Views (and thus EViews too)
+#
+#
+
+
+
+# 
+# The function 'SetZoomBindings' must be used if you want a class of objects 
+# to answer zoom events when they are 
+# in views. You must call this function with the
+# name of the 'class'
+# If mode == rect the rect-mode will be used (using the left mouse button)
+# If mode == xrect same as rect but the zoom is made only on the x's
+# If mode == yrect same as rect but the zoom is made only on the y's
+# If mode == normal 
+#         left button --->  left zoom 
+#         right button --->  right zoom 
+# In each case the midle button is used for unzooming
+#
+#
+# The zoom system uses a global array variable named 'bindings.zoom'
+# It has the following indexes
+#
+#    - <classN> : There are as many such indexes as the number of classes
+#                 that answer to zoom messages. They correspond to arrays
+#                 with the following indexes :
+#          - modes : The corresponding list of modes
+#          - n     : The current mode index in the list 'modes' just above
+#          - modeCur : The corresponding current mode
+#         
+
+ 
+setproc SetZoomBindings {{&word class} modes} "{{{*class* <listv of modes>} {*class* must \
+be a valid classname of a class which corresponds to objects that can be displayed \
+in Views. <listv of modes> is a listv that combines the 4 strings 'rect', 'xrect', 'yrect' or 'normal'. \
+Calling this function enables some mouse bindings so that zoom can be performed when the mouse points to \
+this object. The 'z' key will switch between the different zoom modes. \n\
+- 'normal' : uses the left/right/middle button (as default for signals) \n\
+- 'rect' : uses the left/middle button (as default for images) \n\
+- 'xrect' : same as 'rect' but constraint the x-direction\n\
+- 'yrect' : same as 'rect' but constraint the y-direction}}}" {
+
+  setv bindings.zoom.${class}.modes modes -l 1
+  setv bindings.zoom.${class}.n 1 -l 1
+  
+  _UpdateZoomMode class  
+}
+
+
+# Update the current mode (modeCur) of a zoom for "class"
+setproc _UpdateZoomMode {class} {
+
+  binding delete 'zoom' $class 
+
+  global `bindings.zoom.${class} zoom`
+
+  setbinding 'zoom' "{{'z' : changes the zoom mode just type 'z'} {Left/Right/Middle button : operate the zoom}}"
+  setbinding 'zoom' $class keyDown 'z' %%`_ZoomChange $class`
+
+  zoom.modeCur = zoom.modes[zoom.n-1]
+  
+  if ('normal' == zoom.modeCur) {
+    setbinding 'zoom' $class buttonDown %%`_Zoom $class`
+  } elseif (('rect' == zoom.modeCur) || ('xrect' == zoom.modeCur) || ('yrect' == zoom.modeCur)) {
+    setbinding 'zoom' $class leftButton %%`_Zoom $class`
+    setbinding 'zoom' $class leftButtonMotion %%`_Zoom $class`
+    setbinding 'zoom' $class middleButtonDown %%`_Zoom $class`
+  } elseif ('view' == zoom.modeCur) {
+    # We must check that the 'class' is a view class
+    if ([gclass father class 'View']) {
+      setbinding 'zoom' $class leftButton %%`_Zoom $class`
+      setbinding 'zoom' $class leftButtonMotion %%`_Zoom $class`
+      setbinding 'zoom' $class buttonDown %%`_Zoom $class`
+    } else {
+      errorf "Bad zoom Mode '$zoom.modeCur' for class '$class'"
+    }
+  } else {
+    errorf "Bad zoom Mode '$zoom.modeCur'"
+  }
+  
+  return zoom.modeCur
+}
+
+
+# Process the zoom events of class 'class' if needed 
+# (we must process the zoom method of the class "closest" to the gobject)
+setproc _Zoom {{&word class}} {
+  global bindings.zoom
+    
+  # We must look whether 'class' is the right class to process the event
+  class1=[msge @object class]
+  while (1) {
+    if ([var exist zoom.$class1]) {break}
+    class1=[gclass father class1]
+    if (class1 == 'GObject') {break}
+  }
+  if (class1 != class) {return}
+  
+  # So now we are sure 'class' is the right class so we should process the event
+  
+  # If the event is the 'z' key just do it and return
+  if (@type == 'keyDown') {
+    _ZoomChange $class
+    return
+  }
+  
+  # Normal mode
+  if (zoom.${class}.modeCur == 'normal') {
+    _ZoomNormal
+    return
+  } 
+    
+  # rect, xrect, yrect modes
+  if (("rect" == zoom.${class}.modeCur) || ("xrect" == zoom.${class}.modeCur) || ("yrect" == zoom.${class}.modeCur)) {
+    _ZoomRect zoom.${class}.modeCur
+    return
+  }
+  
+  # view mode
+  _ZoomView class
+}  
+  
+# Change zoom mode (using the 'z' key)
+setproc _ZoomChange {{&word class}} {
+  
+  global  `bindings.zoom.${class} zoom`
+    
+  n=zoom.n
+
+  l=zoom.modes.length
+
+  n = n%l+1
+  zoom.n=n
+
+  mode = [_UpdateZoomMode class]
+  
+  # If it is not a framedview then CIAO !
+  setgu @object.^.^ -string "Zoom mode is '$mode'"
+}   
+
+
+#
+# Handling view zoom events
+#
+setproc _ZoomView {class} {
+  
+  # We must get the mode of the first object found in the view
+  list=[msge @object list]
+  
+  mode=""
+  foreach o list {
+    class=[setg $@objname.$o -class]
+    if (![var exist 1 bindings.zoom.${class}.modeCur]) {continue}
+    mode=[setv bindings.zoom.${class}.modeCur -l 1]
+    break
+  }
+  
+  if (mode=="") {return}
+
+  if (mode == 'normal') {
+    if (@type == 'buttonDown') {_ZoomNormal}
+  } elseif ((@button == 'middle') || (@button == 'left')) {_ZoomRect mode}
+  
+}
+
+
+#
+# Handling normal zoom events
+#
+
+setproc _ZoomNormal {} {
+  
+  # Get the view object
+  if ([msge @object class 'View']) {
+    obj=@objname
+  } else {
+    obj=@objname+'.^'
+  }
+  
+  # If it is not a view then CIAO !
+  if (![msge $obj class 'View']) {return}
+    
+  # Perform the zoom
+  if (@button == 'left') {
+    l=[setg $obj -bound] 
+    setgu $obj -bound @x l[1] '?' '?'
+  } elseif (@button == 'right') {
+    l=[setg $obj -bound]
+    xMin=l[0]
+    setgu $obj -bound xMin @x '?' '?'
+  } elseif (@button == 'middle') {
+    setgu $obj -bound '?' '?' '?' '?'
+  }    
+} 
+
+
+
+#
+# Handling rect zoom events
+#
+
+setproc _ZoomRect {mode} {
+    
+  # Get the zoom mode
+  if (mode == "") {
+    mode=[setv bindings.zoom.${class}.modeCur -l 1]
+  }
+  
+  # Get the view object
+  if ([msge @object class 'View']) {
+    obj=@objname
+  } else {
+    obj=@objname+'.^'
+  }
+
+  # If it is not a view then CIAO !
+  if (![msge $obj class 'View']) {return}
+
+  # if midlle button then un-zoom
+  if (@button == 'middle') {
+    setgu $obj -bound '?' '?' '?' '?'
+    return
+  }
+     
+  if (@type == 'buttonDown') {
+    _DragShape obj 'rect' "" mode=='yrect' mode=='xrect'  
+    return
+  } elseif (@type == 'buttonMotion') {
+    _DragShape
+    return
+  }
+  
+  rect=[_DragShape]
+  if (rect.length==0) {return}
+    
+  # Zoom !
+  xMin=rect[0]
+  yMin=rect[1]
+  xMax= xMin+rect[2]
+  yMax= yMin+rect[3]
+  if (xMax < xMin) {
+    x=xMax
+    xMax=xMin
+    xMin=x
+  }
+  if (yMax < yMin) {
+    x=yMax
+    yMax=yMin
+    yMin=x
+  }
+  
+  if (mode=='yrect') {
+    setgu $obj -bound '?' '?' yMin yMax
+  } elseif (mode=='xrect') {
+    setgu $obj -bound xMin xMax '?' '?'
+  } else {
+    setgu $obj -bound xMin xMax yMin yMax
+  }
+}
+
+
+# Performing zoom in a view
+SetZoomBindings View {'rect'}

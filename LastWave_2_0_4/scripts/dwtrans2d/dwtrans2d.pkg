@@ -1,0 +1,96 @@
+#..........................................................................
+#                                                                         
+#      L a s t W a v e    P a c k a g e 'dwtrans2d' 2.0
+#
+#      Author Emmanuel Bacry                                               
+#      
+#      File associated the dwtrans2d package
+#                                                                    
+#..........................................................................
+
+# Set the filter directory for the dyadic 2d wavelet transform 
+if (System == 'mac') {
+  DWtrans2dFilterDirectory='scripts/dwtrans2d/filters'
+} else {
+  dir=[var unix LWSOURCEDIR]
+  DWtrans2dFilterDirectory= '$dir/dwtrans2d/filters'
+}
+
+#
+# Let's create some dwtrans2 structures a,b,...
+# and the corresponding script for changing the objCur
+#
+if ([var exist a2d] == 0) {
+
+  foreach w "a2d b2d" {
+
+    # let's create the wtransform
+    wt = [new &dwtrans2]
+    wt.name = w
+
+    # Set it to the right variable
+    $w = wt
+    
+    # and create the corresponding command
+    # It has to import the 'objCur' from the calling environement and the wtransform from the global one
+    # and to set the first to the second one
+    setproc $w {} %%`\
+      import args 1 $w 
+      import args -1 objCur
+      objCur = null
+      objCur = $w
+      return
+    `
+  }
+   
+  var delete w
+  var delete wt
+}
+
+  
+
+# Function to display a dwtrans2 structure
+setproc dw2disp {{&dwtrans2 w2 objCur}} \
+"{{{[<owtrans2>=objCur]} {This function displays a dyadic 2d wavelet transform (i.e., \
+a variable of type '&dwtrans2') in a window. If no <dwtrans2> is specified then the current object is used. \
+The display is organized as follows : each row corresponds to a different scale from small scales (top) to \
+large scales (bottom). The first column corresponds to the horizontal wavelet component. The second one \
+corresponds to the vertical component. The third one to the modulus and the last one to the phase. \
+Except the modulus (which uses a '+max' normalization and the inverted current colormap), all \
+the other images use a 'max' normalization and the current colormap. \
+Let us note that you can us the mouse on each image \
+of the display in order to perform zooms.}}}" \
+{
+   win=[_GetWindowDisp "" '&dwtrans2' 'WindowDisp' {100 100 400 400}]
+   msge $win remove 'v*'
+ 
+   type='&dwtrans2'
+     
+   noct=w2.noct
+   norient=4  
+ 
+   if (noct==0) {errorf "The dwtrans2 is empty !"}
+
+  setg $win -size int(512/noct*norient) 512 -dxdy 2 2 -mn norient noct -synchro 'none'
+
+  foreach o 1:noct {
+    foreach v 1:norient {
+    
+      num= o*10+v
+      msge $win add 'v$num' EView -grid v o 1 1 -hide 1 -reverse 'none'
+      msge ${win}.v$num add  'image' GraphImage -graph w2[o,v]
+     if (v==3) {
+       setg ${win}.v${num}.image -cm '_'
+     } else {
+       setg ${win}.v${num}.image -norm 'max'
+     }
+     ncol = w2[o,v].ncol
+     nrow = w2[o,v].nrow
+     setg ${win}.v$num -bound 0 ncol-1 0 nrow-1
+    }
+  } 
+  
+  setgu ${win}..v* -hide 0
+  synchro add 'xy' win '${win}.v*'
+}
+ 

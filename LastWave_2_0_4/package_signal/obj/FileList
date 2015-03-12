@@ -1,0 +1,34 @@
+# The name of the package
+PACKAGENAME = signal
+
+#
+# The specific list of signal package files
+#
+OBJS = $(OBJDIR)signal_alloc.$(OBJEXT) \
+$(OBJDIR)signal_file.$(OBJEXT) \
+$(OBJDIR)signal_create.$(OBJEXT) \
+$(OBJDIR)signal_package.$(OBJEXT) \
+$(OBJDIR)signal_graph.$(OBJEXT) \
+$(OBJDIR)signal_functions.$(OBJEXT)  \
+$(OBJDIR)signal_fft.$(OBJEXT)  \
+$(OBJDIR)convol.$(OBJEXT)  \
+$(OBJDIR)cv_a.$(OBJEXT) \
+$(OBJDIR)cv_n.$(OBJEXT) \
+$(OBJDIR)cv_misc.$(OBJEXT) \
+$(OBJDIR)cv.$(OBJEXT)
+
+#
+# The specific signal package options
+#
+OPTIONS  = $(CCOPTIONS) -I$(INCLUDEDIR) -I../../package_image/include -I../../kernel/include -I../../unix/include -I$(X11INCLUDE)
+
+#
+# The specific dependance
+#
+$(OBJS) $(MULTIDEP) ../../kernel/include/*.h ../../unix/include/*.h ../../package_signal/include/*.h ../../package_image/include/*.h
+
+
+
+
+
+

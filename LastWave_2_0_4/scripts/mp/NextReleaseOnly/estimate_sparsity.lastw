@@ -1,0 +1,28 @@
+setproc sparsity {{&book book} {&float tau}} {{"<book> <tau>" "Computes an upper estimate of the l^tau norm of a signal from its matching pursuit decomposition."}} {
+    coeff2Sig=[new &signal]
+    residuSig=[new &signal]
+    sparsitySig=[new &signal]
+
+    coeff2Sig   = book.wcoeff2
+    residuSig   = book.resEnergy[1:@>]
+    sparsitySig = prim(coeff2Sig^(tau/2))+(book.signalSize)^(1-tau/2)*residuSig^(tau/2) 
+
+    set "xmin xmax" [stats minmax sparsitySig]
+    set min [= [setsig y sparsitySig $xmin]^(1/$tau)]
+#    disp  sparsitySig
+    return $min
+}
+
+setproc optsparsity {{&book book} {&signal norm}} {{"<book> <signal>" "Puts in output signal the upper estimates of the l^tau norm of a signal from its matching pursuit decomposition."}} {
+    set taumin 0.3
+    set taumax 2
+    N=book.signalSize
+
+    s= Zero(20) norm
+    for {set i 0} {$i<20} {incr i} {
+       set tau [= $taumin+($i)*($taumax-$taumin)/19]
+       setsig y norm $i [= [sparsity book $tau]/(sqrt(book.resEnergy[0]))]
+    }
+    setsig dx norm ($taumax-$taumin)/19
+    setsig x0 norm $taumin
+}

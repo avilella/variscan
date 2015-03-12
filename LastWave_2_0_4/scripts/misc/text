@@ -1,0 +1,345 @@
+#..........................................................................
+#                                                                         
+#      L a s t W a v e    P a c k a g e 'misc' 2.0.4
+#
+#      Author Emmanuel Bacry                                               
+#                                                                          
+#..........................................................................
+
+
+#
+#
+# Create a text class for displaying text without any frame
+#
+# 
+
+
+
+#
+# The Drawing method
+#
+setproc _GTextDraw {obj .l} {
+
+  id=[msge $obj id]
+  global `gclass.Text.$id struct`
+
+  {x y} = [setg $obj -pos]
+  {x y} = [msge ${obj} l2g x y]
+  {x y} = [msge ${obj} g2l x+struct.dv[0] y-struct.dv[1]]
+
+  draw string $obj struct.string $struct.hPositionMode x $struct.vPositionMode y
+}
+
+#
+# Answering the messages for shapes 
+#
+setproc _GTextMsge {obj message .l} {
+
+  # The help 
+  if (obj == "?") {
+    return ""
+  }
+
+  id=[msge $obj id]
+
+  if (message == "init") {
+    setv gclass.Text.${id}.string "" -l 1
+    setv gclass.Text.${id}.flagMax 0 -l 1
+    setv gclass.Text.${id}.dv {0 0} -l 1
+    setv gclass.Text.${id}.margin {0 0 0 0} -l 1
+    setv gclass.Text.${id}.hPositionMode "left" -l 1
+    setv gclass.Text.${id}.vPositionMode "base" -l 1
+    setg $obj -size 0 0 -bg 'invisible' -depth 'front' -clip 'screen'
+    return 1
+  }
+  
+  if (message == "delete") {
+    var delete 1 gclass.Text.$id
+    return 1
+  }  
+}
+
+
+#
+# Very useful function to redefine the rectType of the text object 
+#
+setproc _GTextRecomputeRectType {obj struct} {
+  setg - $obj -rectType 'normal'
+  {ax ay}=[setg $obj -apos]
+  {x y w h}=[font rect [setg $obj -font] struct.string $struct.hPositionMode ax $struct.vPositionMode ay]  
+  {l t r b}=struct.margin
+  r1 = ax-x+l+2-struct.dv[0]
+  r2 = ay-y+t+2+struct.dv[1]
+  r3 = w+x-ax+r+2+struct.dv[0]
+  r4 = h+y-ay+b+2-struct.dv[0]
+  setg - $obj -rectType r1 r2 r3 r4
+}
+
+#
+# Setting or Getting the fields of texts
+#
+setproc _GTextSet {obj field .l} {
+
+  # The help 
+  if (obj == "?") {
+    return "{{{string [<string>]} {Sets/Gets the string that is displayed.}} \
+{{dv [<right> <up>]} {Allows to Set/Get a translation in pixels of the position.}} \
+{{margin [<left> <top> <right> <bottom>]} {Sets/Gets the margins (in pixels) around the string (at init they are 0).}} \
+{{flagMax [(0 | 1)]} {Sets/Gets the 'flagMax'. It changes the way the bounding rectangle is computed \
+when the string to be displayed is changed. If it is 0, then the bounding rectangle is recomputed each time. \
+If it is 1 then the union of the old bounding rectangle and the new one is used. It allows to avoid full redrawing.}} \
+{{posMode [<hPosMode>] [<vPosMode>]} {Sets/Gets the horizontal and vertical position modes that are used to \
+display the string. To learn about these modes, you should read the help of the 'draw string' command. \
+Let us note that the '-pos' coordinates of the Text corresponds to the coordinates sent to the 'draw string' command \
+and thus does not correspond to the top left corner of the bounding rectangle (you directly adress the position of the text).}}}"
+  }
+  
+  id=[msge $obj id]
+  global `gclass.Text.$id struct`
+
+  if (field == "pos") { 
+    if (l.length == 0) {return}
+    {oldposx oldposy} = [setg GObject:$obj -pos]
+    if (oldposx == l[0] && oldposy == l[1]) {return}
+    setg - GObject:$obj -pos l[0] l[1]
+    _GTextRecomputeRectType obj struct
+    return 1
+  }    
+
+  if (field == "flagMax") {
+    if (l.length == 0) {
+      return  struct.flagMax
+    }
+    if (struct.flagMax == l[0]) {return -1}
+    if (1 != l[0] && 0 != l[0]) {errorf "Field 'flagMax' should be set to 0 or 1"}
+    struct.flagMax=l[0]
+    return -1
+  }
+  
+  if (field == "string") {
+    if (l.length == 0) {
+      return struct.string
+    }
+    if (struct.string == l[0]) {return -1}
+    struct.string = l[0]
+    hide = [setg $obj -hide]
+    if (!struct.flagMax || type([setg $obj -rectType])=='&string') {
+      if (hide == 0) {msge $obj hide}
+      _GTextRecomputeRectType obj struct
+      if (hide == 0) {setg $obj -hide 0}
+      return 1
+    }
+    {r1 r2 r3 r4}=[setg $obj -rectType]
+    _GTextRecomputeRectType obj struct
+    {nr1 nr2 nr3 nr4}=[setg $obj -rectType]
+    if {r1>=nr1 && r2>=nr2 && r3>=nr3 && r4>=nr4} {
+      setg - $obj -rectType r1 r2 r3 r4
+      return 1
+    }
+    if (hide == 0) {msge $obj hide}
+    if (r1 > nr1) {nr1=r1}
+    if (r2 > nr2) {nr2=r2}
+    if (r3 > nr3) {nr3=r3}
+    if (r4 > nr4) {nr4=r4}
+    setg - $obj -rectType nr1 nr2 nr3 nr4
+    if (hide == 0) {setg $obj -hide 0}
+    return 1
+  }
+
+  if (field == "font") {
+    if (l.length == 0) {
+      return [setg GObject:$obj -font]
+    }
+    setg GObject:$obj -font l[0]
+    _GTextRecomputeRectType obj struct
+    return 1
+  }
+  
+  if (field == "margin") { 
+    if (l.length == 0) {
+      return struct.margin
+    } 
+    struct.margin = l
+    _GTextRecomputeRectType obj struct
+    return 1
+  }    
+
+  if (field == "dv") { 
+    if (l.length == 0) {
+      return struct.dv
+    } 
+    struct.dv = l
+    _GTextRecomputeRectType obj struct
+    return 1
+  }    
+
+  if (field == "posMode") {
+    if (l.length == 0) {
+      return {struct.hPositionMode struct.vPositionMode}
+    }
+    hide=[setg $obj -hide]
+    if (hide == 0) {msge $obj hide}
+    struct.hPositionMode=l[0]
+    struct.vPositionMode=l[1]
+    _GTextRecomputeRectType obj struct
+    if (hide == 0) {setg $obj -hide 0}
+    return 1
+  }         
+}
+
+gclass new Text GObject %_GTextSet %_GTextMsge %_GTextDraw "Graphic Class to draw text without any box around it. The position if the text is precisely controlled." -l
+proc delete %_GTextSet %_GTextMsge %_GTextDraw
+
+
+#
+#
+# Bindings to be able to edit the Text
+#
+#
+#
+
+
+binding delete 'textedit'
+binding delete 'textedit1'
+
+setbinding 'textedit1' Text keyDown 'esc' {_TextEditSwitch}
+setbinding 'textedit' Text keyDown 'any' {_TextEdit}
+setbinding 'textedit1' Text leave {_TextEditDeactivate}
+
+setproc _TextEditDeactivate {} {
+  l=[binding info 'textedit']
+  if (l.length==0) {return}
+  if (l.length != 1) {return}
+  if (l[0][1] == 0) {return}
+  
+  echo Deactivate Text Editing...
+  binding deactivate 'textedit'
+}
+
+setproc _TextEditSwitch {} {
+  l=[binding info 'textedit']
+  if (l.length==0) {return}
+  if (l.length != 1) {return}
+  if (l[0][1] == 0) {
+    echo Activate Text Editing...
+    binding activate 'textedit'
+    return
+  } 
+  
+  echo Deactivate Text Editing...
+  binding deactivate 'textedit'
+}
+
+setproc _TextEdit {} {
+  # In the case we hit a 'return'
+  if (@key=="\n") {
+    str=[setg @object -string]
+    setgu @object -string str+"\n"
+    return
+  } 
+
+  # In the case we hit a 'up' or 'down' 
+  if (@key=='up' || @key=='down') {
+    font=[setg @object -font]
+    name=[font name font]
+    style=[font style font]
+    size=[font size font]
+    msge @object hide 
+    if (@key=='up') {
+      size+=1
+    } else {
+      size -= 1
+    }
+    if (size < 5) {size=5}
+    if (![font exist "$name-$size-$style"]) {
+      echo !! Sorry font $name-$size-$style does not exist
+      return
+    }
+    setgu @object -hide 0 -font "$name-$size-$style"
+    return
+  } 
+
+  # In the case we hit a 'tab'
+  if (@key=="tab") {
+    font=[setg @object -font]
+    name=[font name font]
+    style=[font style font]
+    size=[font size font]
+    msge @object hide 
+    if (style == "plain") {
+      style="bold"
+    } elseif (style == "bold") {
+      style="plain"
+    }
+    if (![font exist "$name-$size-$style"]) {
+      echo !! Sorry font $name-$size-$style does not exist
+      return
+    }
+    setgu @object -hide 0 -font "$name-$size-$style"
+    return
+  } 
+
+  # The characters we do not deal with
+  if (@key!=" " && @key.llength != 1) {
+    terminal beep
+    return
+  }
+  if (@key=='left' || @key=='right' || @key=='up' || @key=='down') {
+    terminal beep
+    return
+  }
+
+  # Get the current string
+  str=[setg @object -string]
+  
+  # In the case we hit a 'delete'
+  if (@key=='delete') {
+    if (str.length==0) {
+      terminal beep
+      return
+    }
+    if (str.length==1) {
+      setgu @object -string ""
+      return
+    }
+    setgu @object -string str[:@>-1]
+    return
+  } 
+  
+  # Otherwise we just add a character !
+  setgu @object -string str+@key 
+}
+
+setbinding 'textedit1' "{{escape : enters/leaves the edit mode.}}"
+setbinding 'textedit' "{{In the edit mode, any character can be typed.} \
+{up/down : change the font size} \
+{tab : switch bold/plain}}"
+
+binding activate 'textedit1'
+binding deactivate 'textedit'
+
+
+binding delete 'createText' 
+
+if (![var exist binding.GObject.text]) {binding.GObject.text=0}
+
+setbinding 'createText' GObject keyDown 'f5' {_GObjectCreateText}
+
+setproc _GObjectCreateText {} {
+
+  global binding.GObject.text
+  text += 1
+
+  if ([msge @object class 'GList']) {
+    msge @object add 'text$text' Text -pos @x @y -string "type in"
+  } else {
+    msge @object.^ add "text$text" Text -pos @x @y -string "type in"
+  }
+  
+  echo Creation of a Text object named 'text$text'
+  _TextEditSwitch
+}
+
+setbinding 'createText' "{{f5 : creates a Text object in the gobject and just type in (try 'tab', 'up' and 'down').}}"
+
+binding activate 'createText'

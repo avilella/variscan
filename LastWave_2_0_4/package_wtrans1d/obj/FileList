@@ -1,0 +1,35 @@
+# The name of the package
+PACKAGENAME = wtrans1d
+
+#
+# The specific list of Wtrans1d package files
+#
+OBJS  = $(OBJDIR)cwt1d.$(OBJEXT) \
+$(OBJDIR)filter_alloc.$(OBJEXT) \
+$(OBJDIR)filter_bior.$(OBJEXT) \
+$(OBJDIR)filter_dyad.$(OBJEXT) \
+$(OBJDIR)filter_file.$(OBJEXT) \
+$(OBJDIR)oconvolution.$(OBJEXT) \
+$(OBJDIR)dconvolution.$(OBJEXT) \
+$(OBJDIR)owt1d.$(OBJEXT)  \
+$(OBJDIR)dwt1d.$(OBJEXT)  \
+$(OBJDIR)wtrans_alloc.$(OBJEXT) \
+$(OBJDIR)wtrans_functions.$(OBJEXT) \
+$(OBJDIR)wtrans1d_package.$(OBJEXT) \
+$(OBJDIR)wtrans_graph.$(OBJEXT) \
+$(OBJDIR)wt1d_collection.$(OBJEXT) \
+$(OBJDIR)wt1d_wavelets.$(OBJEXT) \
+$(OBJDIR)wtrans_file.$(OBJEXT)
+
+#
+# The specific wtrans1d options
+#
+OPTIONS  = $(CCOPTIONS) -I$(INCLUDEDIR) -I../../kernel/include -I../../unix/include -I$(X11INCLUDE) -I../../package_image/include -I../../package_signal/include -I../../package_extrema1d/include
+
+#
+# The specific dependance
+#
+$(OBJS) $(MULTIDEP) ../../kernel/include/*.h ../../unix/include/*.h
+$(OBJS) $(MULTIDEP)  $(INCLUDEDIR)/wtrans1d.h $(INCLUDEDIR)/wt1d.h $(INCLUDEDIR)/filter1d.h ../../package_signal/include/signals.h  ../../package_image/include/images.h
+$(OBJDIR)/wtrans_alloc.o $(MULTIDEP) ../../package_extrema1d/include/extrema1d.h
+$(OBJDIR)/wt1d_collection.o $(OBJDIR)/wt1d_wavelets.o $(MULTIDEP) $(INCLUDEDIR)/wt1d_int.h

@@ -1,0 +1,54 @@
+****************************************************
+****************************************************
+****************************************************
+FOR INSTALLATION DETAILS YOU SHOULD READ LASTWAVE DOCUMENTATION
+****************************************************
+
+To install LastWave on a unix/X11 computer you should follow these steps:
+(they are fully described in the manual)
+
+1- Define in your startup shell file (.bash_profile, .cshrc, .login, .tcshrc,...) 
+the ARCH variable as xxx typing something like
+   setenv ARCH xxx
+or
+   export ARCH=xxx
+
+where xxx must be (depending on the computer you are running) one of
+darwin (MacOS X with XFree86), cygwin (Windows with Cygwin/X11) dec, hp, linux, sg (silicon Graphics) or sun. 
+
+2- Define, in the same way, the variable LWPATH that should indicate 
+the path of the LastWave directory. It should look like
+   setenv LWPATH  $HOME/LastWave_2_0_4
+or
+   export LWPATH=$HOME/LastWave_2_0_4
+
+3- Type
+  cd LastWave_2_0_4/Makefiles
+
+4- Type
+  make dirs
+
+5- Type
+  make makes
+
+6- Type 
+  make
+
+This last step should run the compilation. At the end, the executable file to run is
+  LastWave_2_0_4/bin/xxx/lw
+
+BEFORE RUNNING IT
+
+7- you should define the LWSOURCEDIR variable (it indicates the path 
+to the script directory that will contain the 'startup' file) :
+  setenv LWSOURCEDIR $HOME/LastWave_2_0_4/scripts
+or
+  export LWSOURCEDIR=$HOME/LastWave_2_0_4/scripts
+
+8- you can add the path to the executable file by typing in your startup shell file
+something like
+  export PATH=$HOME/LastWave_2_0_4/bin/xxx:$PATH
+
+****************************************************
+****************************************************
+****************************************************

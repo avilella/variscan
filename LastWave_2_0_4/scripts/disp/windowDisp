@@ -1,0 +1,326 @@
+#..........................................................................
+#                                                                         
+#      L a s t W a v e    P a c k a g e 'disp' 2.0
+#
+#      Author Emmanuel Bacry                                               
+#                                                                          
+#..........................................................................
+
+#
+#
+# In this file is defined the WindowDisp class that is used to display graphs
+# using the 'disp' function.
+# A WindowDisp will contain a list of FramedViews
+#
+#
+
+
+# Some default values
+gclass.WindowDisp.default.bg='grey'
+gclass.WindowDisp.default.dx=2
+gclass.WindowDisp.default.dy=2
+
+
+#
+# Answering the messages for WindowDisp 
+#
+setproc _GWindowDispMsge {obj message .l} {
+
+  # The help 
+  if (obj == "?") {
+    return "{{{clear} {Clears the WindowDisp.}}}"
+  }
+
+  id=[msge $obj id]
+  global &array `gclass.WindowDisp.$id struct`
+  
+  objname=[msge $obj name]
+  
+  if (message == "init") {
+    global gclass.WindowDisp.default
+    struct.synchro='none'
+    setg $obj -mn 1 1 -dxdy default.dx default.dy -bg default.bg -type '&mixed' -superpose 0
+    setg $obj -synchro 'x'
+    return 1
+  }
+  
+  if (message == "delete") {
+
+    global gclass.WindowDisp.last
+    type1=struct.type[1:]
+
+    if ([var exist last.$type1]) {
+      if (last.$type1 == objname) {
+        var delete last.$type1
+        list=[msge WindowDisp:* name]
+        foreach w list {
+          if (w == objname) {continue}
+          if ([setg $w -type] == struct.type) {
+            last.$type1=w
+            break
+          }
+        }
+      }
+    }
+
+    var delete 1 gclass.WindowDisp.$id
+    return 1
+  }
+    
+  if (message == "clear") {
+    msge $obj remove 'fv*'
+    setg $obj -synchro 'x'
+    var delete struct.superpose
+    struct.superpose.active=0
+    return 1
+  }
+    
+}    
+    
+#
+# Setting or Getting the fields of WindowDisp
+#
+setproc _GWindowDispSet {obj field .l} {
+
+  if (obj == "?") {
+    return "{{{type [<type>]} {Sets/Gets the type of the WindowDisp. It is defined as the type of variables it displays or '&mixed' if it displays variables of different types.}} \
+{{synchro [{x xy none}]} {Sets/Gets the synchronization mode for the WindowDisp. 
+- 'x' means that the abscissa scale of all the EViews will be synchronized 
+- 'xy' means that the abscissa and the ordinate scales of all the EViews will be synchronized 
+- 'none' means that no synchronization is made.}} \
+{{s [{x xy none}]} {Same as '-synchro'.}} \
+{{superpose [<flagOnOff>]} {Sets/Gets superposition flag. If 1 then all the eviews are superposed.}} \
+{{S [<flagOnOff>]} {Same as '-superpose'.}} \
+{{x [<xMin> <xMax>]} {Sets/Gets the xMin and xMax used in the WindowDisp. You can use '*' and '?' characters in the same way as for '-bound' fields of views.}} \
+{{y [<yMin> <yMax>]} {Sets/Gets the yMin and yMax used in the WindowDisp. You can use '*' and '?' characters in the same way as for '-bound' fields of views.}}}"
+  }
+
+
+  id=[msge $obj id]
+  global `gclass.WindowDisp.$id struct`
+  objname=[msge $obj name]
+
+  # The type field
+  if (field == "type") {
+    if (l.length==0) {
+      return struct.type
+    }    
+
+    global &array gclass.WindowDisp.last
+    
+    if ([var exist struct.type]) {
+    
+      if (l[0] == struct.type) {return -1}
+      
+      type1=struct.type[1:]
+
+      if ([var exist last.$type1]) {
+        if (last.$type1 == objname) {
+          var delete last.$type1 
+          list=[msge WindowDisp:* name]
+          foreach w list {
+            if (w == objname) {continue}
+            if ([setg $w -type] == struct.type) {
+              last.$type1=w
+              break
+            }
+          }
+        }
+      }
+    }
+    struct.type=l[0]
+    type1=l[0][1:]
+    last.$type1=objname
+    setg $obj -title "$objname ($l[0])"
+    return -1
+  }
+
+  # The synchro or 's' field (possible values are 'x', 'xy' or 'none')
+  if (field == 'synchro' || field == 's') {
+      
+    if (l.length == 0) {return struct.synchro}
+    
+    if (l[0] != 'x' && l[0] != 'xy' && l[0] != 'none') {errorf "Bad value for 'synchro' field : %s" l[0]}
+
+    if (l[0] == struct.synchro) {return -1}
+
+    if (struct.synchro != 'none') {synchro delete struct.synchroId}
+
+    if (l[0] == 'none') {
+      if (struct.synchro == 'xy') {
+        struct.synchro='none'
+        setg ${objname}.fv* -bound '?' '?' '?' '?'
+      } else { 
+        $struct.synchro='none'
+      }
+      return -1
+    }
+    
+    struct.synchro=l[0]
+
+    struct.synchroId=[synchro add l[0] objname {objname+"..view"}]
+    if ([msge  ${objname}.fv1 exist]) {
+      setg ${objname}.fv1 -bound '*' '*' '?' '?'
+    }
+    return -1
+  }
+  
+  # The superpose or 'S' field (possible values are 0 or 1)
+  if (field == 'superpose' || field == 'S') {
+  
+    if (l.length == 0) {return struct.superpose.active}
+    
+    if (l[0] != 0 && l[0] != 1) {errorf "Bad value for 'superpose' field : %V" l[0]}
+
+    if (![var exist struct.superpose.active]) {
+      struct.superpose.active=0
+      return -1
+    }
+    
+    if (l[0] == struct.superpose.active) {return -1}
+    
+    # We must perform superposition
+    if (struct.superpose.active == 0) {
+      
+      # It must be of type &signal
+#      if (struct.type != '&signali') {return -1} 
+
+      # It must be synchronized
+      if (struct.synchro == 'none') {return -1} 
+      
+      # We must remember everything....
+      struct.superpose.mn=[setg $obj -mn]
+      struct.superpose.synchro=[setg $obj -synchro]
+      list=[msge $obj list 'fv*']
+      if (list.llength <= 1) {return -1}
+      setg ${obj}.$list[*list,0] -depth 'back'
+      list=list[*list,1:]
+      foreach fv list {
+        struct.superpose.${fv}.bg=[setg ${obj}.$fv -bg]
+        struct.superpose.${fv}.viewbg=[setg ${obj}.${fv}.view -bg]
+        struct.superpose.${fv}.boxbg=[setg ${obj}.${fv}.box -bg]
+        struct.superpose.${fv}.grid=[setg ${obj}.$fv -grid]
+        struct.superpose.${fv}.bound=[setg ${obj}.$fv -bound]
+        setg ${obj}.$fv -grid 1 1 1 1 -bg 'invisible'
+        setg ${obj}.${fv}.view -bg 'invisible'
+        setg ${obj}.${fv}.box -bg 'invisible'
+      }
+      setg $obj -mn 1 1 -synchro 'xy'
+      struct.superpose.active=1
+      
+      return 1
+    }
+    
+    # We must undo superposition
+    # We must reset everything....
+    list = [msge $obj list 'fv*']
+    list = list[*list,1:]
+    {m n} = struct.superpose.mn
+    setg $obj -mn  m n -synchro struct.superpose.synchro
+    foreach fv list {
+      setg ${obj}.$fv -bg struct.superpose.${fv}.bg
+      setg ${obj}.${fv}.view -bg struct.superpose.${fv}.viewbg
+      setg ${obj}.${fv}.box -bg struct.superpose.${fv}.boxbg
+      {i j k l} = struct.superpose.${fv}.grid
+      setg ${obj}.$fv -grid i j k l
+      {i j k l} = struct.superpose.${fv}.bound
+      setg ${obj}.$fv -bound i j k l
+      var delete struct.superpose.$fv
+    }
+     
+    struct.superpose.active=0
+      
+    return 1
+  }
+  
+  # The 'x' field (To set the xMin and xMax of all the framedviews)
+  if (field == "x") {
+  
+    if (l.length==0) {return [setg ${objname}.fv1 -bound][0:1]}
+
+    if (l.length < 2) {errorf "Not enough argument for '-x' field"}
+        
+    setg ${objname}.fv* -bound l[0] l[1] '*' '*'
+    return -1
+  }
+  
+  # The 'y' field (To set the yMin and yMax of all the framedviews)
+  if (field == "y") {
+  
+    if (l.length==0) {return [setg ${objname}.fv1 -bound][2:]}
+
+    if (l.length < 2) {errorf "Not enough argument for '-y' field"}
+    
+    if (struct.synchro == 'xy') {    
+      fv='fv*'
+    } else {
+      fv='fv1'
+    }    
+    setg ${objname}.fv* -bound '*' '*' l[0] l[1]
+    return -1
+  }
+}
+
+gclass new WindowDisp  Window %_GWindowDispSet %_GWindowDispMsge  null "Graphic Class to manage windows used by the 'disp' function. \
+It implements a whole system for remembering which window was the last used for displaying a type of variables."
+proc delete %_GWindowDispSet %_GWindowDispMsge
+
+
+#
+# Managing current WindowDisp
+#
+
+setproc _GetWindowDisp {name type class rect} {
+    
+  global &array gclass.WindowDisp.last
+
+
+  # Case we must get the window named 'name' and force its type 
+  if (name!='') {
+  
+    # Case the name exist
+    if ([msge $name exist WindowDisp]) {
+      if (type!="") {setg $name -type type}
+      return name
+    }
+    
+    # Case it does not exist
+    if ([msge $name exist Window]) {errorf "Name for WindowDisp '%s' already exists as a Window" name}
+    window new class name -hide 1 -type type -pos rect[0] rect[1] -size rect[2] rect[3] -hide 0 
+    if (type == '&imagei') {setg $name -s 'xy'}
+    return name
+  }
+  
+  if (type=="") {
+    if (name=="") {name='.'}
+    return [msge $name name]
+  }
+    
+  # Case we must get the last window of type 'type' or create it
+  type1=type[1:]
+  if ([var exist last.$type1]) {return last.$type1}
+
+  # Get the index number 
+  for {n=1} ([msge Window$n exist]) {n+=1} {}
+    
+  window new class 'Window$n' -hide 1 -type type -pos rect[0] rect[1] -size rect[2] rect[3] -hide 0 
+  if (type == '&imagei') {setg Window$n -s 'xy'}
+  return 'Window$n'
+}
+
+
+# bindings for managing last windows
+binding delete 'lastWindowDisp'
+setbinding 'lastWindowDisp' WindowDisp enter {_EnterWindowDisp}
+binding activate 'lastWindowDisp'
+
+setproc _EnterWindowDisp {} {
+
+  global &array gclass.WindowDisp.last
+
+  type=[setg @object -type]
+  type1=type[1:]
+  
+  last.$type1=@objname
+}
+

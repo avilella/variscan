@@ -1,0 +1,77 @@
+
+
+#
+#
+# Demo file for the owtrans2d package
+#
+#
+
+
+#
+# When the package owtrans2d is loaded, two &owtrans2 variables are defined : a2 and b2
+# (look in the file owtrans2d.pkg). 
+# You can use them as the "current object" ("objCur") by just typing their names as
+# a command (e.g., just type "a2" and you will see that the prompt that indicates
+# the name of the current object as well as its type will be "a2 (&owtrans2) > ").
+#
+
+# Accessing the images of a owtrans2 variable (when it is the objCur):
+#
+#   The image to analyze is referred to as 0
+#   The image representing octave <oct> and orientation <orient>  is simply <oct><orient>
+#     the <orient> could be 1 (X transform), 2 (Y transform) or 3 (XY transform).
+#     the <orient> could be 0 for <noct> being the largest octave (it corresponds to the 
+#     last Vj projection)
+#   The images 1 to 9 are just images available for the user which are never used 
+#   by wavelet reconstruction/decomposition.
+# 
+
+setproc DemoOWtrans2d {} "{{{} {Displays the original 'lenna' image its orthogonale wavelet decomposition ands its reconstruction}}}" {
+  StartDemo DemoOWtrans2d
+}
+
+setproc _DemoOWtrans2d0 {} {
+
+  import args 1 System
+
+global _scriptDirectory objCur a2
+_scriptDir = _scriptDirectory[0]
+
+# Set the objCur to the owtrans2 named a2
+a2
+
+# Set the current color map to be the grey one 
+colormap current 'grey'
+
+# Read the image we want to decompose
+# (The '-c' option means that the file contains bytes coding 
+# grey levels between 0 and 255)
+iread 0 '$_scriptDir/image/lenna.char' -c
+
+# Set the filter we want to use for wavelet transform (Daubechies 8)
+owt2f 'Daub8'
+
+# Perform the transform on 6 octaves
+owt2d 6
+
+# Reconstruction in image 1
+owt2r 1
+
+# Display the decomposition itself
+ow2disp
+msge . move 51 337
+setgu . -title "Wavelet Decomposition"
+
+# Then the images
+disp  {0 1 1a2-0a2} -title "Original/Reconstructed/Error" -size 746 264
+
+# Prints some info on the error 
+istats print 1a2-0a2
+
+  printf "\nIf you want to learn how these graphs were generated look at the procedure \
+'_DemoOWtrans2d0' in the file 'scripts/owtrans2d/DemoOWtrans2d'\n"
+
+}
+
+
+help DemoOWtrans2d

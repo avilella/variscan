@@ -1,0 +1,189 @@
+2005-08-11  Albert Vilella
+	
+	* Release 1.0.1:
+		- Fixed bug in uninitialized values for Fay_and_Wu_H.
+		- Fixed readxmfa parser to deal MAUVE output alignments.
+		- Some typos corrected.
+	
+20050425  Albert Vilella
+
+	- Fixed readxmfa parser to deal MAUVE output alignments.
+	- Some typos corrected.
+	
+20050301  Albert Vilella
+
+	- This changelog will report releases from now on. Use cvs to
+	check changes in the cvs version
+	
+20040510  Stephan Hutter
+
+	- added support for overlapping BDF blocks. As long as the start
+	values are sorted in the BDF file, the blocks may overlap.
+
+	- added reference positions in the SW output. The calculation of
+	statistics is still base on the total alignment positions, but the
+	first and last reference position in a window are also calculated.
+	
+20040325  Stephan Hutter
+
+        * pop.[ch]
+	
+	- Now contains all functions handling the selection of sequences
+	and outgroups
+
+	* free.[ch]
+	
+	- Contains all functions for memory-freeing
+
+	* output.[ch]
+	
+	- stuff that goes onto the screen (and later into the files)
+
+	* statistics.[ch]
+	
+	- calculation of statistics (Pi, Theta, Tajima, etc.)
+
+	* window.[ch]
+	
+	- handling of the sliding windows and BDF blocks
+
+	* Makefile.am
+	
+	- changed file for correct compilation and linking
+	
+20040304  Stephan Hutter
+
+	* variscan.[ch]
+
+	- theta and tajima_D for pairwise deletion
+	
+20040303  Stephan Hutter
+
+	* variscan.[ch]
+
+	- variscan now also calculates Theta and S (# of segregating
+	sites) for PHYLIP files in a sliding window fashion
+
+	- calculations of Tajima's D for the SW have been included,
+	concerning the number of segregating sites
+
+	- calculations for Theta and Tajima's D should also work for
+	pairwise (still not tested)
+
+	- speeded-up the algorithms for the calculation of the SW and the
+	polymorphism statistics, new code is 10-20x faster
+
+	- fixed a small bug that caused problems when calculating the
+	final window
+	
+20040209  Stephan Hutter
+
+	* variscan.20040128.h:
+		
+	- added variables chosenNumSeq (total number of chosen sequences
+	for ingroup) and chosenNumOut (total number of outgroups) to
+	vscanFile
+                                                                                                                                
+	- added a list for chosen seqs and chosen outgroups in vscanBlock
+                                                                                                                                
+	- added some variables to vscanPolyArray: monomorph (number of
+	monomorphic sites in the array), gapAmb (number of sites with gaps
+	or ambiguities in the array), notanalysed (number of sites that
+	are not stored in the array)
+                                                                                                                                
+	- added the variable boolGap to configFile. It allows the user to
+	choose if sites with gaps or ambiguities should be included in
+	analysis
+                                                                                                                                
+	- added structure vscanOutgroup. Contains a pointer to the
+	sequence of the outgroup and the phylogenetic info given in the
+	config file
+
+	* variscan.20040128.c
+	
+	- added calculations of pi for the complete stretch currently in
+	memory. Should be part of statistics.c, but is put here because of
+	problems when including that file.
+                                                                                                                                
+	- the seqChoice feature is now working. Statistics (namely pi)
+	will be calculated only on the basis on chosen sequences in the
+	config file. The polyarray is now only filled with nucleotides
+	from the chosen sequences.
+                                                                                                                                
+	- changed the code so now also sites with gaps or ambiguities can
+	be included in calculations.
+                                                                                                                                
+	- added some procedures which create dlLists of the chosen
+	sequences and the chosen outgroups. Outgroups are automatically
+	sorted by their phylogentic distance to the ingroup.
+                                                                                                                                
+	- changed vinfo->start to 1 at initialization.
+                                                                                                                                
+	- for testing reasons, the polyArray along with the
+	vscanPolySummary is printed for each stretch together with
+	additional parameters and Pi per site.
+
+	* data/example.conf
+ 
+	- changed exemple.conf to work with the new parameters
+
+	* data/SARS.conf
+
+	- changed SARS.conf to work with the new parameters
+ 
+	* data/s.conf
+
+	- changed s.conf to work with the new parameters
+ 
+	* data/chr1.axt.conf
+
+	- changed chr1.axt.conf to work with the new parameters
+
+2004-01-30  Stephan Hutter
+
+	* variscan.20040128.c:
+
+	- changed reading of filenames in phylipFirstStretch so no white
+	space is required between name and start of sequence
+
+	* pop.c:
+
+	- changed size of *words[256] to *words[128] inside writeMgaNames. 
+
+	- removed variable *cloneName inside writeMgaNames because it
+	was unnecessary.
+	
+2004-01-27  Albert Vilella
+	
+	* pop.c: MgaName array typo.
+	
+	* statistics.c: Uninitalized boolean in count haplotypes.
+	
+2004-01-27  Albert Vilella
+
+	* variscan.20040116.c: Debugged problem with freeanalysedpart. Now
+	should work smoothly.
+
+2004-01-27  Stephan Hutter
+
+        * renamed parameter binSeqVector to seqChoice inside the conf-file
+
+        * added parameter outgroup to conf-file
+
+        * changed SARS.conf and s.conf to work with the new parameter
+	(for testing)
+
+        * added function to create a vpop with a list of n=numSeq vindivs
+
+        * updated loadConfigFile to read seqChoice and outgroup and put it
+	into the corresponding vindiv
+
+        * changed phylipFirstStretch to read out sequence names and put
+	them into vindiv->name
+
+        * added function writeMgaNames to write the standard names of MGA
+	files into vindiv->name
+
+        * added function popOutput which shows the summary of
+	population parameters at the end of a run (to check if everything
+	worked)

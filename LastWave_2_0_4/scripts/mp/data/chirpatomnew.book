@@ -1,0 +1,35 @@
+LastWave Header
+<binary> no </binary>
+End of Header
+<item> <id>book</id> <version>2.0</version> <content>
+<item> <id>size</id> <type>unsigned long</type> </item> 
+<item> <id>tfcontent</id> <version>2.0</version> <content>
+<item> <id>x0</id> <type>float</type> </item>
+<item> <id>dx</id> <type>float</type> </item>
+<item> <id>signalSize</id> <type>unsigned long</type> </item>
+</content> </item>
+<item> <id>molecule</id> <version>2.0</version> <content>
+<item> <id>dim</id> <type>unsigned short</type> </item> 
+<item> <id>nChannels</id> <type>unsigned char</type> </item>
+<item> <id>atom</id> <version>2.0</version> <content>
+<item> <id>windowShape</id> <type>char</type> </item> 
+<item> <id>windowSize</id> <type>unsigned long</type> </item>
+<item> <id>timeId</id> <type>float</type> </item>
+<item> <id>freqId</id> <type>float</type> </item>
+<item> <id>chirpId</id> <type>float</type> </item>
+<item> <id>coeffR</id> <type>float</type> </item>
+<item> <id>coeffI</id> <type>float</type> </item>
+<item> <id>realGG</id> <type>float</type> </item>
+<item> <id>imagGG</id> <type>float</type> </item>
+<item> <id>coeff2</id> <type>float</type> </item>
+<item> <id>cosPhase</id> <type>float</type> </item>
+<item> <id>sinPhase</id> <type>float</type> </item>
+</content> </item>
+</content> </item>
+</content> </item>
+<tfcontent> 0 0.000976562 1024</tfcontent>
+<book> 1
+<molecule> 1 1
+<atom> gauss 512 512 9600 62.5 0.981074 -2.99889 0 0 19.9117 0.310929 -0.950433 </atom>
+</molecule>
+</book>

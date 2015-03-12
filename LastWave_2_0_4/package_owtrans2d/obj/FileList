@@ -1,0 +1,21 @@
+# The name of the package
+PACKAGENAME = owtrans2d
+
+#
+# The specific list of OWtrans2d package files
+#
+OBJS = $(OBJDIR)owavelet2.$(OBJEXT) \
+$(OBJDIR)ofilter2.$(OBJEXT) \
+$(OBJDIR)owtrans2d_package.$(OBJEXT) \
+$(OBJDIR)owtrans2_alloc.$(OBJEXT)
+
+#
+# The specific Owtrans2d options
+#
+OPTIONS  = $(CCOPTIONS) -I../../kernel/include -I../../unix/include -I$(X11INCLUDE) -I$(INCLUDEDIR)  -I../../package_image/include -I../../package_signal/include -I../../package_compress2d/include -I../../package_image/include
+
+#
+# The specific dependance
+#
+$(OBJS) $(MULTIDEP)  ../include/*.h ../../package_image/include/*.h ../../kernel/include/*.h ../../unix/include/*.h ../../package_signal/include/*.h ../../package_image/include/*.h
+

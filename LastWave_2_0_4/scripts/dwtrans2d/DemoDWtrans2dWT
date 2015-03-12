@@ -1,0 +1,273 @@
+############################################################################
+#
+# This is a demo file for the DWTRANS2D package that allows to
+# reproduce the figures 6.9  of the book
+# "A Wavelet Tour in Signal Processing" by S. Mallat.
+#
+############################################################################
+
+setproc DemoDWtrans2dWT_6_9 {} "{{{} {Demo command that reproduces the figure 6.9 of the book 'A Wavelet Tour in Signal Processing' by S. Mallat.}}}" {
+  StartDemo DemoDWtrans2dWT_6_9
+}
+
+setproc _DemoDWtrans2dWT_6_90 {} {
+
+  import args 1 System
+
+
+import args 1 objCur a2d
+
+#Changes the objCur variable to the wtrans 'a2d'
+a2d
+
+# Set the current color map to be the grey one 
+colormap current 'grey'
+
+#Make a circle image of size 128 x 128
+0=[circle 128 128]
+
+#Dyadic wavelet decomposition up to level 7
+dwt2d 7
+
+#Compute the multiscale edge representation
+extrema2
+
+#Save the edge represenation of level 1 (finer) in image 81 for the magnitude
+#and image 90 for the argument
+e2image 1 81 90 
+e2image 2 82 90 
+e2image 3 83 90 
+e2image 4 84 90 
+e2image 5 85 90 
+e2image 6 86 90 
+e2image 7 87 90 
+
+
+#display the wavelet maxima at the different scales
+disp  81 82 83 84 85 86 87 -title "Extrema" \
+-size int(512/7) 512 -pos 718 64 -..fv* -margin 0 0 0 0 -..box -hide 1 \
+-..view.* -cm '_'
+
+#use the wdisp command define in the script wdisp to display the wavelet
+#transform
+dw2disp a2d 
+
+  printf "\nIf you want to learn how these graphs were generated look at the procedure \
+'_DemoDWtrans2dWT_6_90' in the file 'scripts/dwtrans2d/DemoDWtrans2dWT'\n"
+
+}
+
+help DemoDWtrans2dWT_6_9
+
+#####################
+
+setproc DemoDWtrans2dWT_6_10 {} "{{{} {Demo command that reproduces the figure 6.10 of the book 'A Wavelet Tour in Signal Processing' by S. Mallat.}}}" {
+  StartDemo DemoDWtrans2dWT_6_10
+}
+
+setproc _DemoDWtrans2dWT_6_100 {} {
+
+  import args 1 System
+
+import args 1 objCur a2d _scriptDirectory
+ _scriptDir = _scriptDirectory[0]
+
+#Changes the objCur variable to the wtrans 'a2d'
+a2d
+
+# Set the current color map to be the grey one 
+colormap current 'grey'
+
+#read the image
+iread 0 '$_scriptDir/image/lenna.char' -c
+
+#Dyadic wavelet decomposition up to level 5
+dwt2d 5
+
+#use the wdisp command define in the script wdisp to display the wavelet
+#transform
+dw2disp 
+
+#Compute the multiscale edge representation
+extrema2
+
+#Save the extrema represention of octaves 1, 2, 3, 4, 5 in images 89, 88, 87, 86, 85 for the magnitude
+#and image 90 for the argument
+e2image 1 89 90 -p
+e2image 2 88 90 -p
+e2image 3 87 90 -p
+e2image 4 86 90 -p
+e2image 5 85 90 -p
+
+
+#Thresh out the extrema with small modulus at any scale
+e2thresh 0 10
+
+#Save the new extrema represention of octaves 1, 2, 3, 4, 5 in images 79, 78, 77, 76, 75 for the magnitude
+#and image 90 for the argument
+e2image 1 79 90 -p
+e2image 2 78 90 -p
+e2image 3 77 90 -p
+e2image 4 76 90 -p
+e2image 5 75 90 -p
+
+#display the two representation : the one without thresholding and the one with thresholding 
+disp  {89 79} {88 78} {87 77} {86 76} {85 75} -title "Extrema/Thresholded Extrema" \
+-size int(512/5*2) 512 -..fv* -margin 0 0 0 0 -..box -hide 1 \
+-..view.* -cm '_'
+
+  printf "\nIf you want to learn how these graphs were generated look at the procedure \
+'_DemoDWtrans2dWT_6_100' in the file 'scripts/dwtrans2d/DemoDWtrans2dWT'\n"
+
+}
+help DemoDWtrans2dWT_6_10
+
+
+#####################
+
+setproc DemoDWtrans2dWT_6_11 {} "{{{} {Demo command that reproduces the figure 6.11 of the book 'A Wavelet Tour in Signal Processing' by S. Mallat.}}}" {
+  StartDemo DemoDWtrans2dWT_6_11
+}
+
+setproc _DemoDWtrans2dWT_6_110 {} {
+
+  import args 1 System
+
+import args 1 objCur a2d _scriptDirectory
+ _scriptDir = _scriptDirectory[0]
+
+
+#Changes the objCur variable to the wtrans 'a2d'
+a2d
+
+#clear a previous wavelet transform
+clear a2d
+
+# Set the current color map to be the grey one 
+colormap current 'grey'
+
+#read the lena image and store it in image 0
+iread 0 '$_scriptDir/image/lenna.char' -c
+
+#Dyadic wavelet decomposition up to level 5
+dwt2d 5
+
+#Compute the multiscale edge representation
+extrema2
+
+
+# reconstruction from the wavelet maxima with the conjugate gradient algorithm
+e2reconsgrad 5
+
+# Get an image with values between 0 and 255
+0[find(0a2d<=0 || 0a2d>=255)] := 0
+
+# Save the reconstructed image in 2
+2=0a2d
+
+#read the lena image and store it in image 0
+iread 0 '$_scriptDir/image/lenna.char' -c
+
+#Dyadic wavelet decomposition up to level 5
+dwt2d 5
+
+#Compute the multiscale edge representation
+extrema2
+
+#Thresh out the points with small modulus
+e2thresh 0 5
+
+# Save the reconstructed image in 1
+1=0a2d
+
+# reconstruction from the wavelet maxima with the conjugate gradient algorithm
+e2reconsgrad 5
+0[find(0a2d<=0 || 0a2d>=255)] := 0
+
+#display the result
+disp  {0 2 1} -title "Thresholded/Reconstructed/original" -size 799 318
+
+  printf "\nIf you want to learn how these graphs were generated look at the procedure \
+'_DemoDWtrans2dWT_6_110' in the file 'scripts/dwtrans2d/DemoDWtrans2dWT'\n"
+
+}
+
+help DemoDWtrans2dWT_6_11
+
+
+#####################
+
+setproc DemoDWtrans2dWT_10_6 {} "{{{} {Demo command that reproduces the figure 10.6 of the book 'A Wavelet Tour in Signal Processing' by S. Mallat.}}}" {
+  StartDemo DemoDWtrans2dWT_10_6
+}
+
+setproc _DemoDWtrans2dWT_10_60 {} {
+
+  import args 1 System
+
+import args 1 objCur a2d _scriptDirectory
+ _scriptDir = _scriptDirectory[0]
+
+
+#Changes the objCur variable to the wtrans 'a2d'
+a2d
+
+# Set the current color map to be the grey one 
+colormap current 'grey'
+
+# read the noisy "pepper" image and store it in image 0
+iread 0 '$_scriptDir/image/peppers.noise.char' -c
+
+#copy it in image 93
+93=0a2d
+
+#Dyadic wavelet decomposition up to level 7
+dwt2d 7
+
+#Compute the multiscale edge representation
+extrema2
+
+#Save the extrema represention of octave 1, 2 and 3 in images 99, 98 and 97 for the magnitude
+#and image 90 for the argument
+e2image 1 99 90 -p
+e2image 2 98 90 -p
+e2image 3 97 90 -p
+
+#compute the chain representation
+chain2
+
+#use the denoising procedure with answers to questions taken from the 'param' file.
+denoise2 :: <$_scriptDir/dwtrans2d/param >
+
+#reconstruction from the wavelet maxima with the conjugate gradient algorithm
+e2reconsgrad 10 0.1
+
+#copy image 0 (reconstruction) in image 1
+1=0a2d
+
+#Cut the values which are out of range
+0=int(0a2d)
+0[find(0a2d<=0 || 0a2d>=255)] := 0
+
+#copy image 1 in image 92
+92=1a2d
+
+#Save the new extrema represention of octave 1, 2 and 3 in images 96, 95 and 94 for the magnitude
+#and image 90 for the argument
+e2image 1 96 90 -p
+e2image 2 95 90 -p
+e2image 3 94 90 -p
+
+# Then make some displays !
+
+disp Debruitage {93 92} -size 400 200 -pos 620 40 -..fv* -axis 0 -margin 0 0 0 15
+
+disp Contour {99 98 97} {96 95 94} -size 600 400 -pos 20 40 -..fv* -margin 0 0 0 15 -..view.* -cm '_'
+
+  printf "\nIf you want to learn how these graphs were generated look at the procedure \
+'_DemoDWtrans2dWT_10_60' in the file 'scripts/dwtrans2d/DemoDWtrans2dWT'\n"
+
+}
+
+help DemoDWtrans2dWT_10_6
+

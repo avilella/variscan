@@ -1,0 +1,338 @@
+
+#..........................................................................
+#                                                                         
+#      L a s t W a v e    P a c k a g e 'disp' 2.0.4
+#
+#      Author Emmanuel Bacry                                               
+#                                                                          
+#..........................................................................
+
+
+#
+#
+# In this file is defined all what is needed for the main displaying procedure 'disp' to work.
+#
+#
+
+#
+# First we source some files
+#
+source zoom eview framedView windowDisp cursor superpose select
+
+#
+# Then we define some global variable
+#
+disp.windowClass='WindowDisp'
+disp.mixed.rect={20 55 550 400}
+
+
+
+
+#
+#
+# And finally the procedure itself !!
+# 
+#
+
+
+setproc disp {{&wordlist .l}}  "{{{[<window>] [<theVariables>] [<setg fields>]} \
+{This function is a high level functions for displaying all sorts of objects such as signals, \
+wavelet transforms, extrema representation in the same window using (almost) any layout. The display takes place in a <window> of class \
+WindowDisp. Each WindowDisp has a 'type' which corresponds to the type of objects it currently \
+displays. A WindowDisp with only signals in it will be of type '&signali', one with only 1d extrema \
+representation will be of type '&extrep'... A WindowDisp that mixes objects of different types is of type \
+'&mixed'. The type of a WindowDisp is indicated in its title which is of the form '<windowName> (<type>)'. \
+A WindowDisp is a window that contains one 'FramedView' for each graph to be displayed. These FramedViews \
+are named fv1,..,fvN. \
+A FramedView consists basically in a View (named 'view') in the middle and a one line text-box of type Box (named 'box') \
+at the bottom. Moreover it automatically draws axis around the 'view'. This 'view' is actually not directly of type 'View' \
+but it is of type 'EView' (for Extended View) which directly inherits from the class 'View'. It extends the View class \
+in order to take care of eventual x and y-scale synchronizations between different EViews (c.f. the 'synchro' command). \
+Let us note that if 'disp' is sent with no argument (or just <window>) it just refreshes the current window, i.e., \
+the last window visited by the mouse or in which drawing was performed.  \
+The arguments of the 'disp' command are the following : 
+\
+ - <window> : The WindowDisp the display will take place in. If it is not specified, then, \
+ the last WindowDisp of the right type that has been used or \
+that has been visited by the mouse will be used. If such a window does not exist, it will be automatically created. \
+The position and size of the newly created WindowDisp is the one specified in the global variable 'disp.<type>.rect' \
+where <type> is the type of the WindowDisp to be created (without the first '&' character). Thus, for instance, \
+in the 'scripts/signal.pkg' file, the first line is 'disp.signali.rect={20 55 330 330}'. Let us note that, \
+if you want 'disp' to use a new type of window (that inherits from WindowDisp, in which you would have added, for \
+instance, some buttons), you can specify it by changing the global variable (in the 'scripts/disp/disp.pkg' file) :\
+'disp.windowClass'. Actually you can also specify for each <type> (e.g., signali, wtrans,...) a disp.<type>.axis variable \
+which (dis)able axis drawing, a disp.<type>.reverse variable to set the 'reverse' field of the corresponding framed views and \
+in the same way the disp.<type>.margin (which is used only if the type of the window disp is not mixed).
+\
+ - <theVariables> : The variables appearing here are 'extended' variables (such as the signal '0a' or the wavelet transform 'a'). \
+The way it is organized controls the way it will appear on the screen. This argument can be seen as a succession \
+of lists. The window will be divided vertically in as many sections as the number of lists. Each \
+list 'represents' one of this 'horizontal' section (from top to bottom). Moreover, each of these lists are themselves \
+organized as lists of extended variables. Thus, each horizontal section will be divided (vertically) in as many \
+sections as the length of its corresponding list. Thus, each of the so-obtained sections corresponds to a variable list. \
+The command 'disp' displays all the objects corresponding to each variable list superposed in a FramedView in its corresponding \
+section. For instance, if one wants to display 4 objects (three signals) '0','1','2' and (a wavelet transform) 'a' one on \
+top of the other one, one would simply type 'disp 0 1 2 a'. Now if one wants the first 2 ones to be at the same horizontal \
+level, one needs to type 'disp {0 1} 2 a'. Just play around with it.... you will master it very easily. Let us note that \
+if this argument is not specified then it will just redraw the corresponding <window> using the fields of the next argument. \
+This allows to change the way some objects are currently displayed on a window. 
+\
+ - <setg fields> : It corresponds to a succession of arguments of the 'setg' command. Actually, the following command \
+will be executed 'setg <window> <setg fields>' where <window> is the name of the window the display takes place in. \
+One has to know that the FramedViews are named fv1,....,fvN and the graphic objects corresponding to the variables \
+are simply named 1,2,...n (in the same order as they appear in the 'disp' command). Thus if one wants to display \
+the signal '0' on top of the wavelet transform 'a' and makes the signal '0' appear as big red dots and 'a' use the 'global' \
+normalization mode, one would type 'disp 0 a -..1 -fg red -curve o -4 -..2 -norm global'. One must look \
+to the documentation concerning the different gobjects (GObject, GraphSignal, GraphWtrans,....) to know about the fields \
+they support. You can also change the fields of the WindowDisp, e.g., 'disp 0 a -x 0 1 -..1 -fg red' which displays \
+the signal '0' in red and between abscissa 0 and 1 (the 'x' field is a WindowDisp field).}}}" {
+
+  global &array disp
+  windowClass = disp.windowClass
+  
+  # We start a gupdate : all the objects that must be drawn or redrawn will be automatically
+  # added to the gupdate list. The command 'gupdate do' will perform the update
+  gupdate start
+  
+  #
+  # Is the first argument a window or a window to be ?
+  #
+  win = ""
+  rg = [str match l '^[abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_.][*^ ]' 1]
+  if (rg.length!=0) {
+    rg = rg[0]
+    if (([msge $l[rg] exist $windowClass] || type([val test $l[rg] -l -1])=='&null') && l[rg][0] != '{') {
+      win = l[rg]
+      l = l[*list,1:]
+    }
+  }
+
+  # If no argument we just perform a refresh
+  if (l=="") {
+    if (win == "") {win = "."}
+    msge $win draw -clip
+    return
+  }
+      
+  #
+  # We do a first loop on the arguments 'l' to compute the size m,n of the grid of the window
+  # and the type of the WindowDisp (&signali, &mixed, ....)
+  # It also imports all the variables
+  #
+  n=0
+  m=1
+  k=1
+  type=""
+  opt = 0
+
+  foreach arg l {
+
+    # Get the list of objects
+    if (arg[0] == '{') {
+      test = [val test $arg '&listv' -l -1 -t '&valobj']
+    } else {
+      test = [val test $arg '&valobj' -l -1]
+    }
+
+    # We should  go out of the loop if there is a '-something' which does not evaluate
+    if (arg[0] == '-') {
+      if (type(test) == '&null') {break}
+    } 
+    opt+=1
+        
+
+    # Otherwise there is an error if it does not evaluate
+    if (type(test)=='&null') {
+      if (arg[0] == '{') {
+        val test $arg '&listv' -l -1 -t '&valobj' -E
+      } else {
+        val test $arg '&valobj' -l -1 -E
+      }
+      return
+    }
+    
+    # Get the type of each object on this row and set the graph list
+    if ([var exist t]) {delete t}
+    if ([var exist val]) {delete val}
+    {t val} = test
+    if (t != '&listv') {
+      val1 = {val}
+      delete val
+      val = val1
+    }
+
+    graph.nCols.$n = val.length
+
+    
+    # loop on the row
+    j=0
+    foreach g1 val {
+
+      #loop on each view
+      if (type(g1) != '&listv') {
+        g2 = {g1}
+        delete g1
+        g1 = g2
+      }
+
+      graph.nGraphs.${n}x$j = g1.length
+
+      foreach g g1 {
+
+        # Get the type
+        type1 = type(g)
+        if (type1 == '&signal') {errorf "The %dth object to be displayed is an empty signal" k} 
+        if (type1 == '&image') {errorf "The %dth object to be displayed is an empty image" k} 
+        graph.$k = g
+        k+=1
+        if (type1=='&range') {type1='&signali'}
+        if (type == "") {
+          type = type1
+        } elseif (type != type1) {
+          type='&mixed'
+        }
+      }
+      j+=1
+    }
+
+    # Update m 
+    size=val.length
+    if (m % size != 0) {
+      factor=size
+      if (factor == 4 && m % 2 == 0) {factor=2}
+      if (factor == 6) {
+        if (m % 2 == 0) {factor=3}
+        if (m % 3 == 0) {factor=2}
+      }
+      m *= factor
+    }      
+    
+    #update n
+    n+=1
+  }
+
+  # Now that we got the type of the Window, we must get the corresponding window
+  type1=type[1:]
+  if ([var exist disp.${type1}.rect]) {wrect=disp.${type1}.rect} else {wrect={50 50 200 200}}
+  win=[_GetWindowDisp win type disp.windowClass wrect]
+
+  # Split the arguments into the two list : the list of objects to be displayed ('list') and the options ('option')
+  option = l[*list,opt:]  
+  list = l[*list,:opt-1]
+
+  # If some objects must be displayed we must destroy the previously displayed objects
+  # and set the new grid size m,n
+  if (list!="") {
+    synchro=[setg $win -s]
+    msge $win remove '*'
+    msge $win clear
+    setg $win -mn m n
+    setg $win -s synchro
+  }
+
+  # We now loop again to create the different framed views and the objects (if any)
+  k=1
+  fv=1
+  
+  foreach row 0:n {
+  
+    if (row == n) {break}
+  
+    # 'j','i' will be the grid coordinates of the corresponding framed view in the window
+    size=m/graph.nCols.$row
+    i=row+1
+    j=1
+    
+    # We loop on each column of arg
+    foreach col 0:!graph.nCols.$row {
+      # create the framed view (hidden)
+      msge $win add 'fv$fv' FramedView -hide 1 -grid j i size 1 
+            
+      # We loop on each graph
+      foreach g 0:!graph.nGraphs.${row}x${col} {
+        setg ..fv$fv -graph1+ graph.$k '$k'
+        k+=1
+      }
+      
+      fv+=1
+      j+=size
+    }    
+  }
+ 
+  # if the list is not empty, we must recompute the bounds
+  if (list!="") {
+    setg ..fv1 -bound '?' '?' '?' '?'
+  }
+     
+  #    
+  # And now the options 
+  #
+  if (option != "") {answer=[eval -1 %%`setg $win $option`]}  
+  
+  # Finally we set the hide field of all the framed views if list is not empty
+  if (list != "") {setg ..fv* -hide 0}
+  
+  # We do the update
+  gupdate do
+  
+  # If the window is hidden just show it
+  if ([setg . -hide]) {msge . show}  
+}
+ 
+setproc dispadd {{&word w} {&word graphword} {&int position -1}} "{{{<window> (<graph> || -) [<position>]} \
+{Adds a graph in a display. If '' is specified, it supresses a graph.}}}" \
+{
+  # Test the window
+  lv = [gclass objlist 'Window' $w]
+  if (lv.length == 0) {errorf "Do not know about window '%s'" w}
+  
+  # Test the number of graphs
+  {m n} = [setg $w -mn]
+  if (m != 1) {errorf "Sorry, this command only works with windows which have a single column of graphs"}
+  if (position == -1) {position = n+1}
+  if (position > n+1) {position = n+1}
+  if (position <= 0) {errorf "The position parameter should be greater than 1 (%d)" position}
+  if (graphword == '-') {
+    if (position > n) {position = n}
+  } else {
+    graph = [val eval $graphword -l -1]
+  }
+    
+  # Create the framed view if necessary
+  if (position>n) {
+    setgu  . -mn 1 n+1
+    nfv = position
+    while ([msge $w list 'fv$nfv'] isnot null) {nfv+=1}
+    nfv = 'fv$nfv'
+    msge $w add '$nfv' FramedView  -grid 1 position 1 1
+  } else {
+  # Or delete a graph
+    list = [msge $w list 'fv*']
+    foreach nfv list {
+      {i j k l} = [setg ${w}.$nfv -grid]
+      if (j == position) {break}
+    }
+    msge ${w}.${nfv}.view remove '*'
+  }
+  
+  # Supressing a graph 
+  if (graphword == '-') {
+    msge ${w} remove nfv
+    list = [msge $w list 'fv*']
+    foreach nfv list {
+      {i j k l} = [setg ${w}.$nfv -grid]
+      if (j < position) {continue}
+      setg ${w}.$nfv -grid i j-1 k l
+    }
+    setgu . -mn 1 n-1
+  } else {
+    
+    # Adding the graph
+    setgu ${w}.$nfv -graph1+ graph '$position'
+  
+    # Update the display
+    {x0 x1 y0 y1} = [setg ${w}.fv1 -bound]
+    setgu ${w}.fv1 -bound x0 x1 '*' '*'
+  }
+}
+

@@ -1,0 +1,12 @@
+#
+# Creation of the 'misc' package 
+#
+
+# We first create the new 'misc' package
+if ([package list 'misc'].length==0) {
+  package new 'misc' 1998 '2.0.4' "E. Bacry" "Package that regroups very useful miscellenaous script commands \
+and graphic classes"
+}
+
+# Then just load it !
+package load 'misc'

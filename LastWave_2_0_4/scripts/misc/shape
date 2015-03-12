@@ -1,0 +1,332 @@
+#..........................................................................
+#                                                                         
+#      L a s t W a v e    P a c k a g e 'misc' 2.0.4
+#
+#      Author Emmanuel Bacry                                               
+#      
+#..........................................................................
+
+
+#
+# LINES
+#
+
+
+#
+# Answering the messages for lines 
+#
+setproc _GLineMsge {obj message .l} {
+
+  # The help 
+  if (obj == "?") {
+    return ""
+  }
+
+  id=[msge $obj id]
+
+
+  if (message == "init") {
+    setv gclass.Line.${id}.point1 {0 0} -l 1
+    setv gclass.Line.${id}.point2 {0 0} -l 1
+    setg $obj -bg 'invisible' -depth 'front'
+    return 1
+  }
+  
+  if (message == "delete") {
+    var delete 1 gclass.Line.$id
+    return 1
+  }  
+}
+
+setproc _GLineRecomputeRect {obj} {
+
+  {x1 y1}=[setg $obj -point1]
+  {x2 y2}=[setg $obj -point2]
+
+  if (x2<x1) {
+    tmp=x1
+    x1=x2
+    x2=tmp
+  }
+  if (y2<y1) {
+    tmp=y1
+    y1=y2
+    y2=tmp
+  }
+  
+  setg $obj -pos x1 y1 -size x2-x1 y2-y1 -rectType 4 4 4 4
+
+}
+
+
+#
+# Setting or Getting the fields of lines
+#
+setproc _GLineSet {obj field .l} {
+
+  # The help 
+  if (obj == "?") {
+    return "{{{point1 [<x1> <y1>]} {Sets/Gets the coordinate of the first end point.}} \
+{{point2 [<x2> <y2>]} {Sets/Gets the coordinate of the second end point.}} \
+{{slope} {Gets the slope of the line.}}}"
+  }
+  
+  id=[msge $obj id]
+  global `gclass.Line.$id struct`
+  
+  if ((field == "point1") || (field == "point2")) {
+    if (l.length==0) {
+      return struct.$field
+    }    
+    
+    if (all(l==struct.$field)) {return -1}
+    struct.$field=l
+    _GLineRecomputeRect obj
+    return 1
+  }
+
+  if (field == "slope") {
+    if (l.length==0) {
+      {x1 y1}=struct.point1
+      {x2 y2}=struct.point2
+      if (x2 == x1) {return 'inf'} else {return (y2-y1)/(x2-x1)}
+    }    
+    errorf "Sorry, you cannot set the 'slope' field"
+  }
+}
+
+setproc _GLineDraw {obj .l} {
+
+  {x1 y1}=[setg $obj -point1]
+  {x2 y2}=[setg $obj -point2]
+  
+  draw line $obj x1 y1 x2 y2
+}  
+
+setproc _GLineIsIn {obj x y} {
+  
+  {x1 y1}=[setg $obj -point1]
+  {x2 y2}=[setg $obj -point2]
+  
+  {gx gy}=[msge $obj l2g x y]
+  {gx1 gy1}=[msge $obj l2g x1 y1]
+  {gx2 gy2}=[msge $obj l2g x2 y2]
+  
+  dist = (((gx-gx1)*(gx2-gx1)+(gy-gy1)*(gy2-gy1))^2)/((gx2-gx1)^2+(gy2-gy1)^2)
+  dist = sqrt((gx-gx1)^2+(gy-gy1)^2-dist)
+  
+  if (dist<5) {return 0}
+  
+  return -1   
+}
+
+gclass new Line GObject %_GLineSet %_GLineMsge %_GLineDraw "Graphic Class that corresponds to a simple line" %_GLineIsIn -l
+proc delete %_GLineSet %_GLineMsge %_GLineDraw %_GLineIsIn
+
+#
+# SHAPE 
+#
+
+#
+# Answering the messages for shapes 
+#
+setproc _GShapeMsge {obj message .l} {
+
+  # The help 
+  if (obj == "?") {
+    return ""
+  }
+
+  id=[msge $obj id]
+
+  if (message == "init") {
+    setv gclass.Shape.${id}.shape 'rect' -l 1
+    setv gclass.Shape.${id}.radius {0 0} -l 1
+    setv gclass.Shape.${id}.centered 1 -l 1
+    setv gclass.Shape.${id}.filled 0 -l 1
+    setv gclass.Shape.${id}.pixel 0 -l 1
+    setg $obj -size 0 0 -bg 'invisible'
+    return 1
+  }
+  
+  if (message == "delete") {
+    var delete 1 gclass.Shape.$id
+    return 1
+  }  
+}
+
+
+setproc _GShapeRecomputeRect {obj struct} {
+
+  {x y}=[setg $obj -pos]
+  {rx ry}=struct.radius
+
+  if (struct.pixel == 0) {
+    {x2 y2}=[msge $obj l2g rx ry]
+    {x1 y1}=[msge $obj l2g 0 0]
+    rx = x2-x1
+    ry = y2-y1
+  }
+
+  if (struct.centered == 0) {
+    if (rx < 0) {
+      r1 = -rx+1
+      r3=1
+    } else {
+      r3 = rx+1
+      r1=1
+    }
+    if (ry < 0) {
+      r2 = -ry+1
+      r4=1
+    } else {
+      r4 = ry+1
+      r2=1
+    }
+  } else {
+    r1 = abs(rx)+1
+    r3 = abs(rx)+1
+    r2 = abs(ry)+1
+    r4 = abs(ry)+1
+  }
+
+  setg $obj -rectType r1 r2 r3 r4
+}
+
+
+#
+# Setting or Getting the fields of shapes
+#
+setproc _GShapeSet {obj field .l} {
+
+  # The help 
+  if (obj == "?") {
+    return "{{{radius [<rx> <ry>]} {Sets/Gets the radii. By default these are specified using local coordinate. If you want to specify \
+them using a number of pixels, you should use '-pixel' field.}} \
+{{centered [(0 | 1)]} {Sets/Gets the centered flag. If it is 1 (which is the default value), it means that the \
+shape will be centered at the point specified by the '-pos' field with radii specified by the '-radius' field. If \
+it is 0 then it means that the shape will be framed in a rectangle which one corner is specified by the '-pos' field \
+and the width and height are specified by the '-radius' field.}} \
+{{pixel [(0 | 1)]} {Sets/Gets the pixel flag. If it is 0 (which is the default value), it means that the \
+radii are specified using local coordinate otherwise the radii indicate a number of pixels in each directions.}} \
+{{filled [(0 | 1)]} {Sets/Gets the field which indicates whether the shape is filled or not.}} \
+{{shape [(rect | ellipse)]} {Sets/Gets the name of the shape to be drawn.}}}"
+  }
+  
+  id=[msge $obj id]
+  global `gclass.Shape.$id struct`
+
+  if ("pos" == field) { 
+    if (l.length==0) {return}
+    if (struct.pixel == 1) {
+      {oldposx oldposy} = [setg GObject:$obj -pos]
+      if (oldposx == l[0] && oldposy == l[1]) {return}
+    }
+    setg GObject:$obj -pos l[0] l[1]
+    _GShapeRecomputeRect obj struct
+    return 1
+  }    
+    
+  if ("shape" == field) {
+    if (l.length==0) {
+      return struct.shape
+    }  
+    l = l[0]  
+    if (l!="ellipse" && l!="rect") {errorf "Bad shape name '%s'" l}
+    if (l==struct.shape) {return -1}
+    struct.shape =l
+    return 1
+  }
+
+
+  if ("filled" == field) {
+    if (l.length==0) {
+      return struct.filled
+    }
+    l = l[0]    
+    if (l!=0 && l!=1) {errorf "Bad value for field 'filled' : '%s'" l}
+    if (l==struct.filled) {return -1}
+    struct.filled=l
+    return 1
+  }
+
+  if ("centered" == field) {
+    if (l.length==0) {
+      return struct.centered
+    }    
+    l = l[0]
+    if (l!=0 && l!= 1) {errorf "Bad value for field 'centered' : '%s'" l}
+    if (l==struct.centered) {return -1}
+    struct.centered=l
+    _GShapeRecomputeRect obj struct
+    return 1
+  }
+
+  if (field=="pixel") {
+    if (l.length==0) {
+      return struct.pixel
+    }    
+    l = l[0]
+    if (l!= 0 && l != 1) {errorf "Bad value for field 'pixel' : '%s'" l}
+    if (l==struct.pixel) {return -1}
+    struct.pixel=l
+    _GShapeRecomputeRect obj struct
+    return 1
+  }
+
+  if ("radius" == field) {
+    if (l.length==0) {
+      return struct.radius
+    }    
+    if (all(l==struct.radius)) {return -1}
+    struct.radius=l
+    _GShapeRecomputeRect obj struct
+    return 1
+  }
+}
+
+setproc _GShapeDraw {obj .l} {
+
+  {x y} = [setg $obj -pos]
+  {r1 r2} = [setg $obj -radius] 
+  
+  if ([setg $obj -pixel] == 1) {
+    if ([setg $obj -centered] == 1) {
+      if ([setg $obj -filled] == 1) {
+        draw $[setg $obj -shape] ${obj} x y r1 r2 -rectType 'large' -pixel -centered -fill
+      } else {
+        draw $[setg $obj -shape] ${obj} x y r1 r2 -rectType 'large' -pixel -centered
+      }
+    } else {
+      if ([setg $obj -filled] == 1) {
+        draw $[setg $obj -shape] ${obj} x y r1 r2 -rectType 'large' -pixel -fill
+      } else {
+        draw $[setg $obj -shape] ${obj} x y r1 r2 -rectType 'large' -pixel
+      }
+    }
+  } else {
+    if ([setg $obj -centered] == 1) {
+      if ([setg $obj -filled] == 1) {
+        draw $[setg $obj -shape] ${obj} x y r1 r2 -rectType 'large' -centered -fill
+      } else {
+        draw $[setg $obj -shape] ${obj} x y r1 r2 -rectType 'large' -centered
+      }
+    } else {
+      if ([setg $obj -filled] == 1) {
+        draw $[setg $obj -shape] ${obj} x y r1 r2 -rectType 'large' -fill
+      } else {
+        draw $[setg $obj -shape] ${obj} x y r1 r2 -rectType 'large'
+      }
+    }
+  }
+}
+
+
+gclass new Shape GObject %_GShapeSet %_GShapeMsge %_GShapeDraw "Graphic Class to draw a rectangle or an ellipse. \
+The position can be set using the '-pos' field which corresponds either to the center of the shape \
+(if the '-center' field is 1) or a corner of the framing rectangle (if the '-center' field is 0). \
+In both cases, the '-radius' field allows to set the width and height of the shape. \
+These distances are expressed either using local coordinates (if the '-pixel' field is 0) or \
+as a number of pixels (if the '-pixel' field is 0)" -l
+
+proc delete %_GShapeSet %_GShapeMsge %_GShapeDraw

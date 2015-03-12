@@ -1,0 +1,352 @@
+#..........................................................................#
+#                                                                          #
+#  L a s t W a v e    P a c k a g e 'wtmm1d' 2.0                           #
+#                                                                          #
+#      Copyright (C) 1998-2002 Benjamin Audit.                             #
+#      email : audit@ebi.ac.uk                                             #
+#                                                                          #
+#..........................................................................#
+#                                                                          #
+#      This program is a free software, you can redistribute it and/or     #
+#      modify it under the terms of the GNU General Public License as      #
+#      published by the Free Software Foundation; either version 2 of the  #
+#      License, or (at your option) any later version                      #
+#                                                                          #
+#      This program is distributed in the hope that it will be useful,     #
+#      but WITHOUT ANY WARRANTY; without even the implied warranty of      #
+#      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the       #
+#      GNU General Public License for more details.                        #
+#                                                                          #
+#      You should have received a copy of the GNU General Public License   #
+#      along with this program (in a file named COPYRIGHT);                #
+#      if not, write to the Free Software Foundation, Inc.,                #
+#      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA             #
+#                                                                          #
+#..........................................................................#
+
+################################################
+#
+# This is a demo file for the wtmm1d package
+# 
+#
+################################################
+
+
+if ([var exist pf_cantor] == 0) {pf_cantor = [new &PF]}
+if ([var exist w_cantor] == 0) {w_cantor = [new &wtrans]}
+
+setproc DemoWTMM1DCantor {} "{{{} {Demonstration of the WTMM method on a non uniform triadic cantor set.}}}" {
+    global System
+
+    StartDemo DemoWTMM1DCantor
+}
+
+setproc _DemoWTMM1DCantor0 {} "{{{} {Results are stored in wtrans <w_cantor> and partition function <pf_cantor>.}}}" {
+    global &wtrans `w_cantor w`
+
+    echo Create a non uniform triadic cantor with command:
+    echo ucantor 0w_cantor 8000 .5 .5 .2 0 .3 .5
+    help ucantor
+
+    # first we make a non uniform cantor
+    ucantor 0w 8000 .5 .5 .2 0 .3 .5 
+
+    # The next line is for a construction of a regular uniform cantor set
+    #   ucantor 0w 8000 .333 .5 .334 0 .333 .5 
+
+    # display the cantor
+    disp Cantor_Signal 0w -pos 380 60  -size 300 300 -..1 -curve '|'
+
+}
+
+setproc _DemoWTMM1DCantor1 {{&string wavelet 'g0'}} "{{{[<wavelet>=g0]} {Results are stored in wtrans <w_cantor> and partition function <pf_cantor>.}}}" {
+    global &wtrans `w_cantor w`
+
+    amin = 1.5
+    omax = 7
+    
+    echo Compute the wavelet transform with command:
+    echo cwtd w_cantor 1.5 7 10 'g0' -e 0
+    echo
+    echo Compute the extrema representation from the wavelet decomposition with command:
+    echo extrema w_cantor w_cantor.extrep
+    
+    
+    # compute WT of the cantor using the <worder>th derivative of the gaussian
+    cwtd w amin omax 10 wavelet -e 0 :: >>
+    
+    # compute the extrema representation
+    extrema w w.extrep
+    
+    # display the extrema representation
+    disp Cantor_Extrema w.extrep -pos 700 60 -size 300 300
+}
+
+setproc _DemoWTMM1DCantor2 {} "{{{} {Results are stored in wtrans <w_cantor> and partition function <pf_cantor>.}}}" {
+    global &wtrans `w_cantor w`
+    global &PF `pf_cantor pf`
+
+    echo Compute the partition function on the maxima lines i.e. the WTMM method
+    echo with command:
+    echo pf wtmm pf_cantor w_cantor.extrep {-6 -5 -3 -2 -1 0 1 2 3 5 6 8}
+    help pf wtmm
+    echo Display all the computed 't' partition function in one go:
+    echo disp [pf get t pf_cantor]
+    help pf get
+
+    # compute the partition functions 
+    qlist = {-6 -5 -3 -2 -1 0 1 2 3 5 6 8}
+    pf wtmm pf w.extrep qlist
+    
+    # display tau(q)
+    global System
+	if (System == 'mac') {font = '10'} else {font = 'fixed-10-plain'}
+    disp Cantor_WTMM {[pf get t pf]} -pos 381 395 -size 300 300 \
+	-..fv1 -axisFont '$font' -yLabel "log2 Z(q,a)" -xLabel "log2 a"
+}
+
+setproc _DemoWTMM1DCantor3 {} "{{{} {Results are stored in wtrans <w_cantor> and partition function <pf_cantor>.}}}" {
+    global &wtrans `w_cantor w`
+    global &PF `pf_cantor pf`
+
+    amin = 1.5
+    omax = 7
+
+    echo The linear regression of the previous partition function let us access the 
+    echo tau(q) spectrum. This can be done in one go as well:
+    echo disp [tauqSpectrum pf_cantor log2(amin) log2(amax)]
+    help tauqSpectrum
+
+    # then compute and display the singularity spectrum
+    disp Cantor_Tau [tauqSpectrum pf log2(amin) log2(amin)+omax] -pos 700 395 -size 300 300 \
+	-..fv1 -yLabel "tau(q)" -xLabel "q" -bound -7 9 -7 5 \
+	-..1 -curve 'o' -3 -fg 'blue'
+}
+
+setproc _DemoWTMM1DCantor4 {} "{{{} {Results are stored in wtrans <w_cantor> and partition function <pf_cantor>.}}}" {
+    echo Let\'s clean the screen:
+    echo msge Cantor_* delete
+    echo
+    echo The data that were just computed are stored in &wtrans w_cantor,
+    echo &extrep w_cantor.extrep and &PF pf_cantor.
+    echo
+    echo Now you should try DemoWTMM1DBrownian
+    
+    msge Cantor_* delete
+}
+
+help DemoWTMM1DCantor
+
+
+if ([var exist pf_brownian] == 0) {pf_brownian = [new &PF]}
+if ([var exist w_brownian] == 0) {w_brownian = [new &wtrans]}
+
+setproc DemoWTMM1DBrownian {} "{{{} {Demo of the WTMM method on brownian walk (mono fractal example), averaging the result on 50 trials}}}" {
+    global System
+    
+    StartDemo DemoWTMM1DBrownian
+}
+
+setproc _DemoWTMM1DBrownian0 {{&string wavelet 'g1'} {&int nrepeat 50}} "{{{[<wavelet>=g1>] [<nrepeat>=50]} {Results are stored in wtrans <w_browmian> and partition function <pf_brownian>.}}}" {
+    global &PF `pf_brownian pf`
+    global &wtrans `w_brownian w`
+    
+    echo Computing 50 repeat realizations of 1024-long Brownian signals.
+    echo for each compute its WT transform, its extrema representation and 
+    echo the corresponding partition functions (WTMM method).
+    echo All the partition functions can be accumulated into one &PF to obtain
+    echo the average result:
+    echo foreach i 0:nrepeat-1 \{
+    echo    0w_brownian = prim(Grand(1024))
+    echo    cwtd w_brownian 1.0 4 10 'g1' -b 'mir'
+    echo    extrema w_brownian
+    echo    if (i == 0) \{
+    echo        pf_brownian = [pf wtmm w_brownian.extrep qlist]
+    echo    \} else \{
+    echo        pf_brownian = [pf add pft [pf wtmm w_brownian.extrep.extrep qlist]]
+    echo    \}
+    echo \}
+	
+    amin = 1.0
+    size = 1024
+    omax = 4
+    qlist = {-1 0 0.5 1 2 3}
+    qldisp = [sprintf toto "%.1f" qlist[0]]
+    foreach i 1:qlist.length-1 {qldisp += [sprintf toto " %.1f " qlist[i]]}
+    
+    
+    # Loop on the trials
+    foreach i 0:nrepeat-1 {
+	printf " $i"
+	
+	0w = prim(Grand(size))
+	
+	# compute WT of the brownian using the <worder>th derivative of the gaussian and mirror border effect
+	cwtd w amin omax 10 wavelet -b 'mir' :: >
+	    
+	# compute the extrema representation
+	extrema w 
+	
+	# use the scale adaptive method
+	chainmax w.extrep 1
+	
+	# compute the partition functions 
+	if (i == 0) {
+	    pft = [pf wtmm w.extrep qlist]
+	} else {
+	    pft = [pf add pft [pf wtmm w.extrep qlist]]
+	}
+    }
+    copy pft pf
+
+    printf "\n"
+}
+	
+setproc _DemoWTMM1DBrownian1 {} "{{{} {Results are stored in wtrans <w_browmian> and partition function <pf_brownian>.}}}" {
+    global &PF `pf_brownian pf`
+
+    qlist = {-1 0 0.5 1 2 3}
+    qldisp = [sprintf toto "%.1f" qlist[0]]
+    foreach i 1:qlist.length-1 {qldisp += [sprintf toto " %.1f " qlist[i]]}
+
+    echo Display all the computed 'd' and 'h' partition function in one go:
+    echo disp {[pf get h pf_brownian]} {[pf get d pf_brownian]}
+    help pf get
+
+    # display h(q) and D(q)
+    global System
+	if (System == 'mac') {font = '10'} else {font = 'fixed-10-plain'}
+    disp Brownian {[pf get h pf]} {[pf get d pf]} -pos 460 60 -size 300 600 \
+	-..fv1 -title "H(q=$qldisp)" \
+	-..fv2 -title "D(q=$qldisp)" \
+	-..title -font '$font'
+}	
+
+setproc _DemoWTMM1DBrownian2 {} "{{{} {Results are stored in wtrans <w_browmian> and partition function <pf_brownian>.}}}" {
+    global &PF `pf_brownian pf`
+
+    echo The linear regression of the previous partition functions let us access the 
+    echo D(h) spectrum. This can be done in one go as well:
+    echo disp [singSpectrum pf_brownian log2(amin) log2(amax)]
+    help singSpectrum
+
+    # Display D(h)
+    global System
+	if (System == 'mac') {font = '10'} else {font = 'fixed-10-plain'}
+    disp Singularity_Spectrum [singSpectrum pf 1.5 4] -pos 60 60 -size 300 300 -x 0 1 -y 0 1.5 \
+	-..fv1 -title "D(h)" 	-..title -font '$font' \
+	-..1 -curve 'o' 3 -fg 'red'
+}
+
+setproc _DemoWTMM1DBrownian3 {} {
+    echo Let\'s clean the screen:
+    echo msge Brownian delete\;\;msge Singularity_Spectrum delete
+    echo
+    echo The data that were just computed are stored in &wtrans w_brownian,
+    echo &extrep w_brownian.extrep and &PF pf_brownian.
+    echo
+    echo Now you should try DemoWTMM1DDevilStair
+    
+    msge Brownian delete;;msge Singularity_Spectrum delete
+}
+
+help DemoWTMM1DBrownian
+
+
+
+if ([var exist pf_devil] == 0) {pf_devil = [new &PF]}
+if ([var exist w_devil] == 0) {w_devil = [new &wtrans]}
+
+setproc DemoWTMM1DDevilStair {} "{{{} {Demo of the WTMM method on a generalized devil staircase (multi fractal example), averaging the result on 50 trials}}}" {
+    global System
+
+    StartDemo DemoWTMM1DDevilStair
+}
+
+setproc _DemoWTMM1DDevilStair0 {{&string wavelet 'g2'} {&int nrepeat 50}} "{{{[<wavelet>=g2] [<nrepeat>=10]} {Results are stored in wtrans <w_devil> and partition function <pf_devil>.}}}" {
+    global &PF `pf_devil pf`
+    global &wtrans `w_devil w`
+	
+    echo Computing 50 repeat realizations of 2048-long devil staircase signals:
+    echo    ucantor 0w_devil size 0.3 0.2 0.2 0.5 0.5 0.3
+    echo    0w_devil = prim(0w_devil)
+    echo For each compute its WT transform, its extrema representation the
+    echo corresponding partition functions (WTMM method) and finally accumulate
+    echo the results into one &PF to obtain the average result (see DemoWTMM1DBrownian).
+
+    amin = 1.0
+    size = 2048
+    omax = 5
+    qlist = {-7 -6 -5 -3 -2 -1 0 0.5 1 2 3 5}
+    qldisp = [sprintf toto "%.1f" qlist[0]]
+    foreach i 1:qlist.length-1 {qldisp += [sprintf toto " %.1f " qlist[i]]}
+	
+    # Loop on the trials
+    foreach i 0:nrepeat-1 {
+	printf "$i "
+	
+	ucantor 0w size 0.3 0.2 0.2 0.5 0.5 0.3
+	0w = prim(0w)
+	
+	# compute WT of the brownian using the <worder>th derivative of the gaussian
+	cwtd w amin omax 10 wavelet -b 'mir' :: >>
+	
+	# compute the extrema representation
+	extrema w
+	
+	# using the scale adaptive method
+	chainmax w.extrep 1
+	
+	# compute the partition functions 
+	if (i == 0) {
+	    pft = [pf wtmm w.extrep qlist]
+	} else {
+	    pft = [pf add pft [pf wtmm w.extrep qlist]]
+	}
+    }
+    copy pft pf
+    printf "\n"
+}
+    
+setproc _DemoWTMM1DDevilStair1 {{&string wavelet 'g2'} {&int nrepeat 50}} "{{{[<wavelet>=g2] [<nrepeat>=10]} {Results are stored in wtrans <w_devil> and partition function <pf_devil>.}}}" {
+    global &PF `pf_devil pf`
+    global &wtrans `w_devil w`
+
+    qlist = {-7 -6 -5 -3 -2 -1 0 0.5 1 2 3 5}
+    qldisp = [sprintf toto "%.1f" qlist[0]]
+    foreach i 1:qlist.length-1 {qldisp += [sprintf toto " %.1f " qlist[i]]}
+
+    echo Display the complete WTMM analysis in one window:
+    echo disp {0w_devil [tauqSpectrum pf_devil 1 4] [singSpectrum pf_devil 1 4]}
+    
+    # display all
+    global System
+	if (System == 'mac') {font = '10'} else {font = 'fixed-10-plain'}
+    disp DevilStair {0w [tauqSpectrum pf 1 4] [singSpectrum pf 1 4]} -pos 60 60 -size 900 300 -s 'none' \
+	-..fv1 -title "devil staircase" -bound 0 1 0 1 \
+	-..fv2 -title "tau(q)" -bound -7.5 5.5 -12.5 2.5 \
+	-..fv3 -title "D(h)" -bound 0 2 0 1.5 \
+	-..title -font '$font' \
+	-..2 -curve 'o' -3 -fg 'blue' \
+	-..3 -curve 'o' 3  -fg 'red'
+
+}
+
+setproc _DemoWTMM1DDevilStair2 {} {
+    echo Let\'s clean the screen:
+    echo msge DevilStair delete
+    echo
+    echo The data that were just computed are stored in &wtrans w_devil,
+    echo &extrep w_devil.extrep and &PF pf_devil.
+    echo
+    echo I recommend that you have a look at LastWave internal help.
+    echo There is only one command 'pf' to manipulate &PF variables. So by
+    echo typing 'help &PF' and 'help pf' you will know everything you can do.
+    echo Other useful thing to look at are the scripts in the scripts/wtmm1d
+    echo directory.
+    
+    msge DevilStair delete
+}
+
+help DemoWTMM1DDevilStair
+

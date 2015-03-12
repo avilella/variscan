@@ -1,0 +1,880 @@
+#..........................................................................
+#                                                                         
+#      L a s t W a v e    P a c k a g e 'terminal' 2.0
+#
+#      Author Emmanuel Bacry                                               
+#      
+#..........................................................................
+
+
+#
+# Splits a string into a listv of strings so that each string has a size which 
+# is less than a given number and so that the splits
+# occur where spaces are or new lines.
+# This routine is used to print on the terminal a very long string....
+#
+
+setproc _SplitStr {{&string str} {&int length 90}} {
+
+  result = {}
+
+  while 1 {
+
+    # If we find a \n or a \r before length, We should use it  
+    lv = [str match str "[\n\r]" 1]
+    if (lv.length!=0) {
+      if (lv[0]<length) {
+        i = lv[0]
+        result += str[:i-1]
+        if (str.length <= i+1) {break}
+        str = str[*no,i+1:]
+        continue
+      }
+    }
+
+    # If the size of the string is less than 'length' then we are done
+    if (str.length <= length) {
+      result += str
+      break
+    }
+       
+    # If not then we have to find the space character where we will cut 
+    lv = [str substr str[length-20:length-1] " "]
+    
+    # get the index where it should be cut
+    if (lv.length!=0) {
+      i=lv[0]+length-20
+    } else {
+      i = length-1
+    }
+    
+    # and cut !
+    result += str[:i]
+    if (str.length <= i+1) {break}
+    str = str[*no,i+1:]
+    
+  }
+  
+  return result 
+}
+
+
+
+#
+# Prints a string on several lines
+# The string 'beginStr' is printed at the beginning of each line starting from the 
+# <n>th line (included)
+#
+
+setproc _PrintSplitStr {str {beginStr ""} {n 1}} {
+
+  l = [_SplitStr str]
+  
+  line=0
+  foreach s l {
+    if (line >= n-1) {printf "%s" beginStr}
+    printf "%s\n" s
+    line+=1
+  }
+}
+
+
+#
+# Prints the usage of a command
+#
+#
+#   - If 'action' is specified and is valid, only the usage of this action is displayed
+#
+#   - If 'action' is specified and if there exists some actions which name begins with 'action', 
+#     only the usages of the corresponding actions are displayed
+#
+#   - In other cases, the usages of all the actions are printed
+#
+#   In any case, if flagHelp is on then it prints both usage and help
+#
+#   Returns 1 if the action exists and 0 if not
+#
+
+setproc _PrintCommandUsage {name {action ""} {flagHelp 0}} {
+
+  ### Is the command a script command ?
+  sflag =  ([proc slist name -m].length!=0)
+
+  ### If the command is a script command, get the file and print it
+  file = null
+  if (sflag) {
+    file=[proc file name]
+    if (file != '') {echo \[$file\]} else {echo \[defined in terminal\]}
+  } 
+  
+  ### Let's get the help !
+  help=[proc help name]
+
+  ### Case the command does not have any help just 
+  if (help == null) {
+    if (sflag) {
+      echo `---> Usage   : $name \{$[proc var name]\}`
+    } else {
+      echo `---> Sorry no help specified`
+    }
+    return 1
+  } 
+
+  ### Number of actions ?
+  nActions=help.length
+  if (nActions == 1 && action != '') {errorf "Bad action %s" action}
+  
+  ### If there is an action specified then we replace
+  ### the 'help' list variable by the help of this action
+  answer=0
+  help2 = {}
+  if (action != '') {
+  
+    foreach help1 help {
+
+      action1=help1[0][*list,0]
+
+      if ([str inter action action1] == action) {
+        help2+={help1}
+        if (action==action1) {answer = 1}
+      }
+    }
+  } else {answer=1}
+  if (help2.length!=0) {help=help2}
+
+
+  ### Then we print all the usages and descriptions
+
+  foreach help1 help {
+
+    usage=help1[0][1:@>-1]
+    description=help1[1][1:@>-1]
+
+    # First we print the usage
+    printf "--- %s " name
+    blank=' '*(name.length+5)
+    _PrintSplitStr usage blank 2
+
+    # Then the help
+    if (flagHelp) {_PrintSplitStr description blank 1}
+  }
+  
+  return answer
+}
+
+
+
+#
+#
+# Routine to get the Completion of a string using a list of strings
+#
+#
+
+setproc _GetCompletion {{&string str} {&listv lv}} {
+
+  if (lv.length == 0) {return ""}
+  
+  res=lv[0]
+  
+  foreach s lv {
+    s1 = [str inter res s]
+    if (s1.length < res.length) {
+      res = s1
+    }
+  }
+  
+  
+  return res[*no,str.length:res.length+str.length]
+}
+
+#
+# Prints the usage of a field
+#
+#   - If 'field' is specified and is valid, only the usage of this field is displayed
+#
+#   - If 'field' is specified and if there exists some field which name begins with 'field', 
+#     only the usages of the corresponding fields are displayed
+#
+#   - In other cases, the usages of all the fields are printed
+#
+#   In any case, if flagHelp is on then it prints both usage and help
+#
+#   if flagExtract is on then it means we only want fields that can handle extractions and we want help on the options
+#
+#   Returns {e completion} where 'e' is 0 if field does not exist, 1 if a unique field exist and 2 if several exist
+#   'completion' is the string completion.
+#
+
+setproc _PrintFieldUsage {type {field ""} {flagExtract 0} {flagHelp 0}} {
+  
+  ### Let's get all the matching fields
+  if (flagExtract) {
+    f = [type field type '!'+field+'!' -e]
+    flag = '-e'
+  } else {
+    f = [type field type '!'+field+'!'+'*' -g]
+    flag = '-g'
+  }
+
+  if (f.length==0) {
+    ### if none then get all the possible fields
+    f = [type field type $flag]
+    answer = 0
+  } else {
+    ### otherwise set the answer
+    if (f.length == 1) {answer = 1} else {answer = 2}
+  }
+  
+  ### If there is still no field then return
+  if (f.length==0) {
+    if (flagExtract) {
+      echo The type '$type' does not have any extraction field
+    } else {
+      echo The type '$type' does not have any field
+    }
+    return {0 ""}
+  }
+
+
+  ### Get the completion string
+  compl = [_GetCompletion field f]
+  
+  ### Let's get the corresponding helps
+  help = {}
+  foreach f1 f {
+    help+= {[type help type f1]+f1}
+  }
+  
+  ### Then we print all the usages and descriptions
+  foreach help1 help {
+
+    ### Get the right help 
+    {get set extOpt f1} = help1
+    if (flagExtract) {h = extOpt} else {h = get}
+ 
+    ### Get the usage and remove eventual {}
+    usage=h[*list*no,0]
+    if ([str match usage '^{*}'].length!=0) {usage = usage[1:@>-1]}
+    
+    ### Get the description and remove eventual {}
+    description=h[*list*no,1:@>+3]
+    
+    # First we print the usage
+    if (!flagExtract) {
+      if (f1 == "") {printf "--- %s" type} else {
+        printf "--- %s.%s " type f1 
+      }
+      blank=' '*6
+      _PrintSplitStr usage blank 2
+    } else {
+      if (f1 == '') {printf "--- %s[*opt,...] : " type} else {printf "--- %s.%s[*opt,...] : " type f1}
+      blank=' '*6
+      _PrintSplitStr usage blank 2
+    }
+
+
+    # Then the help
+    if (flagHelp) {
+      if (!flagExtract) {
+        if ([str match description '^{*}'].length!=0) {description = description[1:@>-1]}
+        _PrintSplitStr description blank 1
+      } else {
+        foreach d description {
+          if ([str match d '^{*}'].length!=0) {d = d[1:@>-1]}
+          if (d == '') {continue}
+          _PrintSplitStr d blank 1
+        }
+      }
+    }
+  }
+  
+  return {answer compl}
+}
+
+#
+# Prints the type documentation
+#
+# it prints the type documentation and then calls  _PrintFieldUsage
+#
+
+setproc _PrintTypeDoc {type {field ""}} {
+
+  if (type == '&word') {
+    printf "\n*** Help on type '&word'\n\n"
+    _PrintSplitStr "This type does not correspond to a C-structure. In a procedure argument, \
+it just indicates that the argument must not be evaluated.\n\n" "    " 0
+    return
+  }
+
+  if (type == '&wordlist') {
+    printf "\n*** Help on type '&wordlist'\n\n"
+    _PrintSplitStr "This type does not correspond to a C-structure. In a procedure argument, \
+it just indicates that the argument must not be evaluated and that it must correspond to a list.\n\n" "    " 0
+    return
+  }
+
+  if (type == '&val') {
+    printf "\n*** Help on type '&val'\n\n"
+    _PrintSplitStr "This type does not correspond to a C-structure. It corresponds to any expression that must be evaluated.\n\n" "    " 0
+    return
+  }
+
+  if (type == '&valobj') {
+    printf "\n*** Help on type '&valobj'\n\n"
+    _PrintSplitStr "This type does not correspond to a C-structure. It corresponds to any expression that must be evaluated except numbers.\n\n" "    " 0
+    return
+  }
+
+  if (type == '&array') {
+    printf "\n*** Help on type '&array'\n\n"
+    _PrintSplitStr "This type implements an array. The index (i.e., the fields) are defined independantly by the user for each array.\n\n" "    " 0
+    return
+  }
+  
+  if (![type exist type]) {errorf "Unknown type '%s'" type}
+
+  
+  help = [type help type]
+  printf "\n*** Help on type '%s' : \n\n" type
+  
+  foreach l help {
+    u = l[*list,0]
+    if ([str match u '{+}'].length!=0) {u = u[1:@>-1]}
+    v = l[*list,1]
+    if ([str match v '{+}'].length!=0) {v = v[1:@>-1]}
+    _PrintSplitStr u+" : "+v "   " 0
+  }
+
+    printf "\n"
+
+  if ([type helpnum type] isnot null) {
+    _PrintSplitStr "Number extraction  : "+[type helpnum type] "   " 0
+  }
+
+    printf "\n"
+
+
+  if ([type field type].length==0) {
+    return
+  }
+  
+  printf "\n*** Help on the fields of '%s' : \n\n" type
+  
+  {answ compl} = [_PrintFieldUsage type field 0 1]
+    printf "\n"
+  return answ
+}
+ 
+#
+# it prints the package documentation and all the commands
+#
+
+setproc _PrintPackageHelp {name} {
+  l = [package list name+'*']
+
+  if (l.length == 0) {
+    return 0
+  }
+
+  if (l.length == 1) {
+    l = l[0]
+    printf "--> Package '%s' %s " l[0] l[3]
+    if (l[1] == 0) {printf "(not loaded), "} else {printf "(loaded), "}
+    printf "[Copyright, %s (%d)]\n" l[4] l[2]
+    help = l[5]
+    _PrintSplitStr help "  " 1
+    if (l[1] == 1) {
+      {slv clv} = [proc list '[^_]*' '*' name]
+      if (slv.length != 0) {
+        printf "** List of script commands\n"
+        listv niceprint slv 
+      }
+      if (clv.length != 0) {
+        printf "** List of C-commands\n"
+        listv niceprint clv 
+      }
+    }
+    printf "\n"
+    return 1
+  }
+
+  printf "*** Loaded packages\n"
+  l1 = {}
+  foreach l2 l {
+    if (l2[1] == 1) {l1 += l2[0]}
+  }
+  listv niceprint l1
+
+  printf "\n*** Other packages\n"
+  l1 = {}
+  foreach l2 l {
+    if (l2[1] == 0) {l1 += l2[0]}
+  }
+  listv niceprint l1
+}
+   
+  
+#
+# Prints the usage of a command
+#
+#   - If 'action' is specified and is valid, only the usage of this action is displayed
+#
+#   - If 'action' is specified and if there exists some action which name begins with 'action', 
+#     only the usages of the corresponding fields are displayed
+#
+#   - In other cases, the usages of all the actions are printed
+#
+#   In any case, if flagHelp is on then it prints both usage and help
+#
+#   Returns {e completion} where 'e' is 0 if action does not exist, 1 if a unique field exist and 2 if several exist
+#   'completion' is the string completion.
+#
+#   if flagMatch is 1, it should look for a command name which is match exactly 'cmd' 
+#
+
+setproc _PrintCmdUsage {cmd {action ""} {flagHelp 0} {flagMatch 0}} {
+  if (cmd[*no,0:1] == '\\\\') {
+    cmd = cmd[2:]
+    flagC = 1
+  } else {flagC = 0}
+  if (flagMatch || action != "") {
+    fs = {}
+    if (!flagC) {fs = [proc slist '!'+cmd+'!']}
+    if (fs.length==0) {fc = [proc clist '!'+cmd+'!']} else {fc = {}}
+  } else {
+    fs = {}
+    fc = {}
+  }
+ 
+  ### Let's get all the matching cmd
+  if (fs.length==0 && fc.length==0) {
+    fs = {}
+    if (!flagC) {fs = [proc slist '!'+cmd+'!'+'*']}
+    fc = [proc clist '!'+cmd+'!'+'*']
+    if (fc.length == 1 && fs.length == 1) {
+      if (fc[0]==fs[0]) {fc = {}}
+    }
+  }
+  flagScript = 0
+
+  if (fs.length+fc.length == 0) {
+    return {0 ""}
+  }
+  
+  answer = 1
+  compl = [_GetCompletion cmd fs+fc]
+  
+  if (fs.length+fc.length > 1) {
+    listv niceprint fs+fc
+    return {2 compl}
+  }
+
+  ### If a single answer then we should print whether it is a C or script command
+  if (fs.length + fc.length == 1 && fs.length == 1) {
+    file=%${fs[0]}.file
+    if (file != '') {echo \[$file\]} else {echo \[defined in terminal\]}
+  }
+
+    
+  ### Let's get the corresponding helps
+  help = {}
+  foreach f1 fs+fc {
+    if (flagC) {fff = %\\$f1} else {fff = %$f1}
+    h = fff.help
+    if (h.length==0) {
+      if ([proc slist f1].length!=0) {
+        h = {{"{"+[proc var f1]+"}" ""}}
+      } else {
+        h = {{"Error in the Usage string (it should have been mentionned at startup)" "Error in the Help string (it should have been mentionned at startup)"}}
+      }
+    }
+    help+= {{h f1}}
+  }
+    
+  ### Then we print all the usages and descriptions
+  foreach help2 help {
+  
+  {help2 f1} = help2
+
+  ### Keep the right action only
+  if (action != '' && help2.length != 1) {
+    help3 = {}
+    foreach help1 help2 {
+      {u h} = help1
+      l = [str match u '^[{][* ]|[*^ ]|' 1]
+      a = u[l]
+      if ([str match a '^!'+action+'!*'].length!=0) {
+        help3 += {help1}
+      }
+    }
+    if (help3.length!=0) {help2 = help3}
+  } 
+  
+  foreach help1 help2 {
+
+    ### Get the right help/usage and removes {} 
+    {u h} = help1
+
+    if (u == '{}') {u = ''}
+    if ([str match u '{+}'].length!=0) {u = u[1:@>-1]}
+    if (h == '{}') {h = ''}
+    if ([str match h '{+}'].length!=0) {h = h[1:@>-1]}
+        
+    # First we print the usage
+    printf "--- %s " f1
+    blank=' '*(f1.length+5)
+    _PrintSplitStr u blank 2
+
+    # Then the help
+    if (flagHelp) {_PrintSplitStr h blank 1}
+  }
+  }
+  
+  return {answer compl}
+}
+
+
+
+#
+# The help command 
+# It prints the help on 'name'
+#
+
+setproc help {{&word name ``} {&word name1 ``}} \
+  "{{{(*commandName* [*action*] | *type* [*fieldName*])} {Displays help on a command or a &type. If *commandName* is not a valid command name then it prints a list \
+of commands which name begins with *commandName*. if a *type* is specified (i.e., a string starting with '&'), it displays the doc on the corresponding type and \
+on all the fields. If *field* is specified then only the corresponding field is displayed. If *fieldName* is not a valid field name then it prints a list \
+of fields which name begins with *fieldName*.}}}" \
+{
+  if (name == '') {
+    Help
+    return
+  }
+  
+  if (name[0] == '&') {
+    answer = [_PrintTypeDoc name name1]
+    if (answer == 0) {
+      terminal beep
+      return
+    }
+    return
+  }
+  
+  fs = [proc list '!'+name+'!']
+  if (fs.length ==0) {blank = 0} else {blank = 1}
+  {answer compl} = [_PrintCmdUsage name name1 1 blank]
+  if (answer == 0) {
+    terminal beep
+    return
+  }
+}
+
+setproc man {} {
+  Help 
+  return
+}
+
+#
+# The helpp command 
+# It prints the help on a package
+#
+
+setproc helpp {{&word pack ``}} \
+  "{{{[*packageName*]} {Displays help on a package and all the commands available. If *packageName is not a valid name, it prints the names of available packages that \
+start with *packageName*. If no *packageName* is specified it gives a list of all the available packages.}}}" \
+{
+  answer = [_PrintPackageHelp pack]
+  if (answer == 0) {
+    terminal beep
+    return
+  }
+}
+
+
+#
+# The helpv command 
+# It prints the help on value
+#
+
+setproc helpv {{&valobj val} {&word name1 ``}} \
+  "{{{<val> [*fieldname*]} {Displays help the fields of a value. If *fieldName* is not a valid field name then it prints a list \
+of fields which name begins with *fieldName*. The value should not be a number (numbers do not have any field!).}}}" \
+{
+  type = [val type val]
+  {answer compl} = [_PrintFieldUsage type name1 0 1]
+  if (answer == 0) {
+    terminal beep
+    return
+  }
+}
+
+
+
+
+
+
+
+setproc _TermComp {line cursor insert comp} {
+  printf "%s" [terminal prompt]
+  terminal line line
+  if (comp != '') {
+    terminal cursor insert
+    terminal insert comp
+  } else {
+    terminal cursor cursor
+  }
+}
+
+#
+# Function for command completion
+#
+
+binding delete 'ccompletion'
+
+setbinding 'ccompletion' "Terminal command and field completion"
+
+setbinding 'ccompletion' terminal keyDown _help {_CommandComp 0}
+setbinding 'ccompletion' terminal keyDown 'esc h' {_CommandComp 1}
+
+
+setproc _CommandComp {flagHelp} {
+
+  if ([terminal mode] != 'command') {return}
+
+  #### get the command line and the cursor position
+  line=[terminal line]
+  cursor=[terminal cursor]
+
+  #### if the line is empty then return
+  line1 = line
+  line1[[str match line1 "^[+ ]"]] := {""}
+  if (line1.length == 0) {
+    terminal beep
+    return
+  }
+
+  ### we reverse the line
+  if (cursor != 0) {
+    line1 = line[:!cursor]
+    rline = line1[:-1:]
+  } else {
+    line1 = ''
+    rline = ''
+  }
+  
+  ### find the first '[' or '.' or blank
+  l = [str match rline '[. []' 1]
+
+  ###
+  ### if nothing or blank --> command completion !
+  ###
+  blank = 0
+  if (l.length!=0) {
+    if (rline[l[0]]== ' ') {
+      blank = 1 
+      l={}
+    }
+  }
+  if (l.length==0) {
+  
+    ### We have to get the cmd name
+    l = [str match line '[* ]|[*^ ]|' 1]
+    cmd = line[l]
+    l = l[0]
+    if (type(l)=='&num') {insert=l+1} else {insert = l.last+1}
+
+    ### And an eventual action
+    line1 = line[*no,insert:@>+1]
+    l = [str match line1 '[* ]|[+^ ]|' 1]
+    if (l.length==0) {
+      action = ""
+    } else {
+      l = l[0]
+      action = line1[l]
+    }
+  
+    ### And call the subroutine
+    printf "\n"
+    {ans comp} = [_PrintCmdUsage cmd action flagHelp blank]
+        
+    if (ans == 0) {
+      terminal beep
+      comp = ""
+    }
+
+    _TermComp line cursor insert comp
+
+    return
+  }
+  
+  
+  ###
+  ### Field completion !
+  ###
+  if (rline[l[0]]== '.') {
+    c = '.'
+    extract = 0
+  } else {
+    c = '['
+    extract = 1
+  } 
+  l = [str match line1 '!'+c+'!']
+  if (l.length==0) {return}
+  l = l[l.length-1]
+  e = l-1
+  if (!extract) {field = line1[*no,e+2:@>+1]} else {field = ""}
+  insert = cursor
+  b = e
+  r = null
+  while (b>=0) {
+    if (b != 0) {
+      if (line1[b-1] == '.') {
+        b-=1
+        continue
+      }
+    }
+    line2 = line1[b:e]
+    if (b != 0) {
+      if ([str match line1[b-1] '[0123456789.]'].length!=0) {
+        b -= 1
+        continue
+      }
+    } 
+    r = [val test $line2 '&valobj' -l -1]
+    if (r == null) {
+      b -=1
+      continue
+    }
+    if (b!=0) {
+      c = line1[b-1]
+      if (c>='A' && c<='Z' || c>='a' && c<='z' || c=='_') {
+        b-=1
+        continue
+      } 
+    }
+    break
+  }
+  if (r == null) {
+    terminal beep
+    return
+  }
+
+  ### Case of signal.X[
+  if (extract) {
+    l = [str match line1 '.']
+    if (l.length!=0) {
+      l = l[l.length-1]
+      if (l > b && l < e) {
+        field1 = line1[*no,l+1:e]
+        line2 = line1[b:l-1]
+        r1 = [val test $line2 '&valobj' -l -1]
+        if (r1 != null) {
+          {type val} = r1
+          if ([type field type field1 -e] != null) {
+            field = field1
+            r = r1
+          }
+        }
+      }
+    }
+  }
+  
+  {type val} = r
+  printf "\n"
+  {ans comp} = [_PrintFieldUsage type field extract flagHelp]
+  if (ans == 0) {
+    terminal beep
+    comp = ""
+  }
+    
+  _TermComp line cursor insert comp
+  
+  return
+  
+     
+}
+   
+    
+#let's activate the binding
+binding activate 'ccompletion'
+
+setproc _SearchWord {w str}  {
+  r = [str substr str w 1]
+  if (r.length != 0) {return r}
+
+  if (w[0] < 'a' || w[0] > 'z') {return r}
+  
+  w1 = [str 2ascii w]  
+  w1[0]-=32
+  w = [str ascii2 w1]
+  
+  r = [str substr str w 1]
+  return r  
+}
+
+setproc apropos {{&word w} {&wordlist .wl}} "{{{*word1* [*word2* ... *wordN*]} {Search for all the commands whose help contain the strings *word<i>* (any order). \
+For each package, it prints each of the so-obtained command with the corresponding part of the help around the occurence of *word1*}}}" {
+  l = {{'kernel' 1}} + [package list]
+  foreach p l {
+    if (p[1] == 0) {continue}
+    flag = 0
+    {sl cl} = [proc list '[^_]*' '*' p[0]]
+    lv = sl+cl
+    lv = [listv sort lv]
+    foreach c lv {
+      c1 = [proc get c]
+      foreach h c1.help {
+        h1 = h[1]
+        if (h1 == '{}') {h1 = ''}
+        h1 = h1[1:@>-1]
+        r = [_SearchWord w h1]
+        if (r.length == 0) {continue}
+        flagStop = 0
+        foreach ww wl {
+          r1 = [_SearchWord ww h1]
+          if (r1.length == 0) {
+            flagStop = 1
+            break
+          }
+        }
+        if (flagStop == 1) {continue}
+        if (flag == 0) {
+          printf "--> Package '%s'\n" p[0]
+          flag = 1
+        }
+        printf "%s" c 
+        h0 = h[0]
+        a = h0[[str match h0 '^{|[*^ ]|']]
+        a1 = a[0]
+        if (a1>='a' && a1<='z') {
+          printf " %s" a
+        }
+        f = r[0].first-25
+        l = r[0].last+25
+        printf "  : "
+        if (f > 0) {printf "..."}
+        printf "%s" h1[*no,f:l]
+        if (l < h1.length-1) {printf "..."}
+        printf "\n"
+      }
+    }
+    if (flag == 1) {printf "\n"}
+  }
+}
+
+#
+# Simple command that displays Help
+#
+
+setproc Help {} "{{{} {Displays some basic help about the help system.}}}" {
+  global _help
+  
+  printf "\nThese are what you should know about the help system: \n\n"
+  printf "   - While writing a command line, you can always use the completion \n"
+  printf "     keys '$_help' to get some help or completion on a command or a field\n\n"
+  printf "   - The command 'help *commandName*' (not a quoted name!) prints some help about a command\n"
+  printf "   - The command 'help &type' prints some help about a type\n\n"
+  printf "   - The command 'helpp *packageName*' prints some help about a package and the list of all the commnads in that package\n\n"
+  printf "   - The command 'helpv <value>' prints some help about a value\n\n"
+  printf "   - The command 'apropos *word1* [*word2* ... *wordN*]' looks for commands whose help contain the substrings *word<i>*\n\n"
+}

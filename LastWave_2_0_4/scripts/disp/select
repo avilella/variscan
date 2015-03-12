@@ -1,0 +1,423 @@
+#..........................................................................
+#                                                                         
+#      L a s t W a v e    P a c k a g e 'disp' 2.0
+#
+#      Author Emmanuel Bacry                                               
+#                                                                          
+#..........................................................................
+
+
+
+##########################################################
+#  
+#  A simple gobject for displaying rectangular regions in views 
+#  and be able to edit them using the mouse
+#
+##########################################################
+
+
+#
+# Answering the messages for RectSelect 
+#
+setproc _GRectSelectMsge {obj message .l} {
+
+  # The help 
+  if (obj == '?') {
+    return ""
+  }
+  
+  id=[msge $obj id]
+
+
+  if (message == 'init') {
+    setg $obj -thickness 7
+    setg $obj -type 'signal'
+    setg $obj -edit 'x'
+    return 1
+  }
+  
+  if (message == 'delete') {
+    var delete 1 gclass.RectSelect.$id
+    return 1
+  }  
+}
+
+
+#
+# Setting or Getting the fields of boxes
+#
+setproc _GRectSelectSet {obj field .l} {
+
+  # The help 
+  if (obj == '?') {
+    return "{{thickness [<thickness>]} {Sets/Gets the thickness of the object. \
+It corresponds to how close (in points) the mouse should be from the borders to be able to edit it. \
+The mouse is considered in the object only if it is close enough to the borders.}} \
+{{edit [x | xy]} {Sets/Gets the 'edit' mode of the SelectRect. If it is 'x' then just the vertical borders can be moved, \
+otherwise any border can be moved}} \
+{{yRescaled} {Gets an internal flag used by the EView objects (it is read only). When the flag is 1 it means that the object must be automatically rescaled in y in order to reach the min/max y-values when the view is zoomed.}} \
+{{type [image | signal]} {Sets/Gets the type of the SelectRect. If it is 'signal' it means that the rectangle will be \
+displayed below the objects which are in the view using a grey background. If it is 'image' it will be \
+displayed above the other objects. This is meant so that the SelectRect can be seen on the screen.  Do not change this value \
+after creating the SelectRect.}}"
+  }
+
+  id=[msge $obj id]
+  global &array `gclass.RectSelect.$id struct`
+
+
+  if (field == 'thickness') {
+    if (l.length==0) {
+      return struct.$field
+    }    
+    struct.$field=l[0]
+    return 1
+  } 
+
+  if (field == 'type') {
+    if (l.length==0) {
+      return struct.$field
+    }    
+    if (l[0]=='image') {
+      struct.$field='image'
+      return 1
+    } 
+    if (l[0]=='signal') {
+      struct.$field='signal'
+      return 1
+    } 
+    errorf "Bad value '%V' for field 'type'" l[0]
+  } 
+
+  if (field == 'edit') {
+    if (l.length==0) {
+      return struct.$field
+    }    
+    if (l[0]=='x') {
+      struct.$field='x'
+      struct.yRescaled=1
+      return 1
+    } 
+    if (l[0]=='xy') {
+      struct.$field='xy'
+      struct.yRescaled=0
+      return 1
+    } 
+    errorf "Bad value '%V' for field 'edit'" l[0]
+  } 
+  
+  if (field == 'yRescaled') {
+    if (l.length==0) {
+      return struct.$field
+    }    
+    errorf "Sorry, the field 'yRescaled' is read only."
+  } 
+}
+
+
+#
+# The mouse is in the box only if it is close to the borders
+#  
+setproc _GRectSelectIsIn {obj x y} {
+  if ([msge Box:$obj isin x y] < 0) {return -1}
+  {x0 y0}=[msge $obj l2g x y]
+  {a b c d}=[setg $obj -arect]
+  thickness=[setg $obj -thickness]
+  if (abs(x0-a)<thickness) {return 0}
+  if (abs(x0-a-c)<thickness) {return 0}
+  if (abs(y0-b)<thickness) {return 0}
+  if (abs(y0-b-d)<thickness) {return 0}
+  return -1
+}
+
+gclass new RectSelect Box %_GRectSelectSet %_GRectSelectMsge null \
+"Graphic Class to display a rectangular selection of a view that can be editable using the mouse. \
+Some graphic objects allow the user to create a RectSelect performing a drag and drop with the left mouse button along \
+with the ctrl key. For instance, if the sound package has been loaded, one should be able to create, in this way, a selection of \
+a signal displayed in a window. This means that the sound package allowed the GraphSignal objects to manage these creation events. \
+In order to make a graphic class allow these events, use the '_SetRectSelectBindings' procedure. Once a RectSelect has been created, \
+it can be edited using the mouse : if you drag and drop a corner of the rectangle you move the selection, otherwise, \
+you can drag and drop any border of the selection that is editable (the sound package makes only the vertical borders editable). \
+When the mouse is 'close' to any border of the selection, it will become active, the active zone is lit up." \
+%_GRectSelectIsIn
+
+proc delete %_GRectSelectSet %_GRectSelectMsge %_GRectSelectIsIn
+
+
+######################################################################
+#
+# Defining bindings to create the RectSelect 
+#
+######################################################################
+
+
+#
+# This procedure must be called with the paramter 'class' if you want the gobject of class 'class'
+# to be able to receive messages for creating RectSelect object.
+#
+
+setproc _SetRectSelectBindings {{&word class} type edit} \
+"{{{<gclass> (signal | image) (x | xy)} {Allows the graphic objects of class <gclass> to be able to handle creation of RectSelect objects using a drag and drop with the left mouse button along with the 'ctrl' key. Specify 'signal' if it is to be displayed on top of signals and 'image' if on top of images. Specify 'x' if the horizontal borders should not be editable.}}}" \
+{
+  if (type != 'image' && type != 'signal') {
+   errorf "Bad type '%s'" $type
+  }
+
+  if (edit != 'x' && edit != 'xy') {
+   errorf "Bad 'edit' mode '%s'" $edit
+  }
+  
+  binding delete 'select' $class
+  
+  setbinding 'select' "{{Ctrl + Left button = Create a rectangular selection AND remove former ones} \
+{Ctrl + Right button = Create a rectangular selection}}"
+  setbinding 'select' $class  leftButtonDown ctrl %%`_SelectCreateDown '$edit'`
+  setbinding 'select' $class leftButtonUp ctrl %%`_SelectCreateUp '$type' '$edit' 1`
+  setbinding 'select' $class leftButtonMotion ctrl %%_SelectCreateMotion
+
+  setbinding 'select' $class  rightButtonDown ctrl %%`_SelectCreateDown '$edit'`
+  setbinding 'select' $class rightButtonUp ctrl %%`_SelectCreateUp '$type' '$edit' 0`
+  setbinding 'select' $class rightButtonMotion ctrl %%_SelectCreateMotion
+
+  binding activate 'select' $class
+}
+
+
+#
+# Select binding when ButtonDown
+#
+setproc _SelectCreateDown {edit} {
+
+  # Are we in a view ? 
+  if (![msge @father class 'View']) {return}
+
+  # Just call the drag procedure with a call back to draw the box  
+  if (edit == 'x') {
+    _DragShape '@object.^' 'rect' "" 0 1 
+  } else {
+    _DragShape '@object.^' 'rect' "" 0 0 
+  }
+}
+
+#
+# Select binding when ButtonMotion
+#
+setproc _SelectCreateMotion {} {
+
+  # Are we in a view ? 
+  if (![msge @father class 'View']) {return}
+
+  # Just call the drag procedure
+  _DragShape
+}
+
+#
+# Select binding when ButtonUp
+#
+setproc _SelectCreateUp {type edit eraseOld} {
+
+  # Are we in a view ? 
+  if (![msge @father class 'View']) {return}
+  
+  rect=[_DragShape]
+
+  if (eraseOld) {
+    if ([msge @object.^.select* exist]) {
+      msge @object.^.select* delete
+    }
+  }
+  
+  # If empty then just exit
+  if (rect.length==0) {return}
+
+  {x y w h}=rect
+
+  if (w<0) {
+    x+=w
+    w-=w
+  }
+
+  if (h<0) {
+    y+=h
+    h-=h
+  }
+  
+  for {i=1} 1 {i+=1} {
+    if (![msge @object.^.select$i exist]) {break}
+  }
+  
+  if (type == 'signal') {
+    msge @object.^ add 'select$i' RectSelect -size w h -pos x y -bg 'lightgrey' -frame 1 -depth 'back' -hide 1 -rectType 'large' -type type -edit edit
+  } else {
+    msge @object.^ add 'select$i' RectSelect -size w h -pos x y -bg 'invisible' -frame 1 -depth 'front' -pen 2 -hide 1 -rectType 'large' -type type -edit edit
+  }  
+  msge @object.^.select$i show
+}
+
+
+
+######################################################################
+#
+# Defining bindings to edit the RectSelect
+#
+######################################################################
+
+binding delete 'editrs' RectSelect
+
+setbinding 'editrs' "{{Ctrl + Left button = Allows to edit the RectSelect by drag/drop on any border.)}}" 
+setbinding 'editrs' RectSelect leftButtonMotion ctrl %%_SelectEditMotion
+setbinding 'editrs' RectSelect leftButtonDown ctrl %%_SelectEditDown
+setbinding 'editrs' RectSelect leftButtonUp ctrl %%_SelectEditUp
+setbinding 'editrs' RectSelect enter %%_SelectEditEnter
+setbinding 'editrs' RectSelect leave %%_SelectEditLeave
+
+binding activate 'editrs' RectSelect
+
+
+#
+# Select binding when enter
+#
+setproc _SelectEditEnter {} {
+  {x y w h}=[setg @object -rect]
+  draw rect @object.^ x y w h -pen [setg @object -thickness] -clip -mode 'inverse' -rectType 'small'
+}
+
+#
+# Select binding when leave
+#
+setproc _SelectEditLeave {} {
+  {x y w h}=[setg @object -rect]
+  draw rect @object.^ x y w h -pen [setg @object -thickness] -clip -mode 'inverse' -rectType 'small'
+}
+
+
+#
+# Select binding when ButtonDown
+#
+setproc _SelectEditDown {} {
+  
+  _SelectEditLeave
+  
+  edit=[setg @object -edit]
+  
+  {x0 y0}=[msge @object l2g @x @y]
+  {a b c d}=[setg @object -arect]
+  thickness=[setg @object -thickness]
+  if (abs(x0-a)<thickness) {
+    if (abs(y0-b)<thickness || abs(y0-b-d)<thickness) {
+      setv gclass.RectSelect.type 'all' -l 1
+    } else {
+      setv gclass.RectSelect.type 'left' -l 1
+    }
+  } elseif (abs(x0-a-c)<thickness) {
+    if (abs(y0-b)<thickness || abs(y0-b-d)<thickness) {
+      setv gclass.RectSelect.type 'all' -l 1
+    } else {
+      setv gclass.RectSelect.type 'right' -l 1
+    }
+  } elseif (abs(y0-b)<thickness) {
+    if (edit == 'xy') {
+      setv gclass.RectSelect.type 'up' -l 1
+    } else {
+      setv gclass.RectSelect.type 'all' -l 1
+    }    
+  }  elseif (abs(y0-b-d)<thickness) {
+    if (edit == 'xy') {
+      setv gclass.RectSelect.type 'down' -l 1
+    } else {
+      setv gclass.RectSelect.type 'all' -l 1
+    }    
+  } else {
+      setv gclass.RectSelect.type 'all' -l 1
+  }
+  
+  setv  gclass.RectSelect.i @i  -l 1
+  setv  gclass.RectSelect.j @j  -l 1
+}
+
+#
+# Select binding when ButtonMotion
+#
+setproc _SelectEditMotion {} {
+
+  global gclass.RectSelect.i gclass.RectSelect.j gclass.RectSelect.type
+
+  {a b c d}=[setg @object.^ -arect]
+
+  mi=@i
+  mj=@j
+
+  if (type == 'all') {
+    msge @object pmove @i-i 0
+  } elseif (type == 'right') {
+    if (@i >= a+c) {
+      if (i == a+c) {return}
+      mi=a+c
+    }
+    dw=mi-i
+    {x y w h}=[setg @object -arect]
+    setg - @object -asize w+dw h
+    if (dw > 0) {
+      msge  @object.^ draw -g x+w-3 y dw+6 h -clip
+    } else {
+      msge  @object.^ draw -g x+w+dw-3 y -dw+6 h -clip
+    }
+  } elseif (type == 'left') {
+    if (@i <= a) {
+      if (i == a) {return}
+      mi=a
+    }
+    dw=mi-i
+    {x y w h}=[setg @object -arect]
+    setg - @object -apos x+dw y -asize w-dw h
+    if (dw > 0) {
+      msge  @object.^ draw -g x-3 y dw+6 h -clip
+    } else {
+      msge  @object.^ draw -g x+dw-3 y -dw+6 h -clip
+    }
+  } elseif (type == 'up') {
+    if (@j <= b) {
+      if j == b return
+      mj=b
+    }
+    dh= mj-j
+    {x y w h}=[setg @object -arect]
+    setg - @object -apos x y+dh -asize w h-dh
+    if (dh > 0) {
+      msge  @object.^ draw -g x y-3 w dh+6 -clip
+    } else {
+      msge  @object.^ draw -g x y+dh-3 w -dh+6 -clip
+    }
+  } elseif (type == 'down') {
+    if (@j >= b+d) {
+      if (j == b+d) {return}
+      mj=b+d
+    }
+    dh=mj-j
+    {x y w h}=[setg @object -arect]
+    setg - @object -asize w h+dh
+    if (dh > 0) {
+      msge  @object.^ draw -g x y+h-3 w dh+6 -clip
+    } else {
+      msge  @object.^ draw -g x y+h+dh-3 w -dh+6 -clip
+    }
+  }   
+    
+  i=mi
+  j=mj
+}
+
+
+
+#
+# Select binding when ButtonUp
+#
+setproc _SelectEditUp {} {
+
+  _SelectEditEnter
+  
+  var delete 1 gclass.RectSelect.i gclass.RectSelect.j gclass.RectSelect.type 
+}
+
+
+

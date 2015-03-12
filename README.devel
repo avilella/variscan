@@ -1,0 +1,100 @@
+Testing and debugging
+---------------------
+
+Testing
+-------
+
+cd t/
+perl Test.t
+
+Debugging
+---------
+
+If you want to debug the program with gdb, there is a gdb.avb file
+that may help on the data structure displaying (I use Emacs GUD). You
+may need to delete the optimization flag in the generated Makefile:
+
+Change:
+
+./autogen.sh
+
+to
+
+./autogen.sh --enable-debug
+
+and then:
+
+make distclean
+
+or 
+
+make clean
+
+and
+
+make
+
+If you want to check the memory leaks, you can use valgrind:
+
+http://valgrind.kde.org/
+
+There is a suppressions file called "valgrind_variscan.supps" to
+switch off spurious errors.
+
+an example of the call to valgrind:
+
+valgrind -v --leak-check=yes --logfile=mylog.file variscan data/SARS.phy data/SARS.conf
+
+You can also test the coverage of the code with gcov:
+
+(1) compile with --enable-debug
+
+(2) run the program normally (with your input and conf files)
+
+(3) Execute:
+
+gcov statistics.c
+
+or the file you are interested in, and this will give a file:
+
+statistics.c.gcov
+
+where you can look for the coverage of the program at your call
+
+Profiling
+---------
+
+The program has the usual flags to profile with gprof.
+
+
+Browsing the sources
+--------------------
+
+The main file to start to look at is variscan.c and its header, variscan.h
+
+Here is where all the logics of the program resides.
+
+The analyses algorithms are located in the statistics.[hc] files.
+
+The population data structures are located in pop.[hc] files.
+
+The reading for whatever-format files functions are located in
+readwhatever-format.[hc] files.
+
+The sliding window definition functions are located in
+sw-whatever.[hc] files.
+
+The output functions are located in output.[hc] files.
+
+Most of the data structures that are dynamically allocated during
+runtime are freed in free.[hc] files.
+
+The rest of the source code files are basic utilities. Most of them
+are part of Jim Kent's freelib. Again, pay him a beer and send the
+bill to us.
+
+There is an implementation of random number generator directly taken
+from "Numerical recipes in C"
+
+----
+

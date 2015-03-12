@@ -1,0 +1,26 @@
+****************************************************
+****************************************************
+****************************************************
+FOR INSTALLATION DETAILS YOU SHOULD READ LASTWAVE DOCUMENTATION
+****************************************************
+
+To install LastWave on a Macintosh, you have several options
+
+
+A) First option, you use MacOs X with XFree86 (this 
+is a GNU X11 distribution).
+In this case you should read the INSTALL_UNIX file.
+
+
+B) Second Option you will run LastWave using MacOs 9 or 
+Classic (the native MacOS X version will be available soon)
+
+After decompressing the archive, you just need to double click 
+on the 'LastWave 2.0.4' application. It should run LastWave.
+
+I recommend that you read the Install section of the Manual,
+some macintosh-specific things are discussed there.
+
+****************************************************
+****************************************************
+****************************************************

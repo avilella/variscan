@@ -1,0 +1,35 @@
+# The name of the package
+PACKAGENAME = mp
+
+#
+# The specific list of Matching Pursuit package files
+#
+OBJS = $(OBJDIR)atom.$(OBJEXT)\
+$(OBJDIR)atom_gaussinnerprod.$(OBJEXT)\
+$(OBJDIR)atom_asyminnerprod.$(OBJEXT)\
+$(OBJDIR)atom_innerprod.$(OBJEXT)\
+$(OBJDIR)atom_interpolate.$(OBJEXT)\
+$(OBJDIR)stft_highres.$(OBJEXT)\
+$(OBJDIR)mp_molecule.$(OBJEXT) \
+$(OBJDIR)mp_book.$(OBJEXT) \
+$(OBJDIR)mp_dict.$(OBJEXT) \
+$(OBJDIR)mp_stft.$(OBJEXT) \
+$(OBJDIR)mp_maxima.$(OBJEXT) \
+$(OBJDIR)mp_notes.$(OBJEXT) \
+$(OBJDIR)mp_graph.$(OBJEXT) \
+$(OBJDIR)mp_package.$(OBJEXT) \
+$(OBJDIR)mp_recons.$(OBJEXT) \
+$(OBJDIR)mp_file.$(OBJEXT)
+
+
+#
+# The specific MP options
+#
+OPTIONS  = $(CCOPTIONS) -I$(INCLUDEDIR) -I../../kernel/include -I../../unix/include -I$(X11INCLUDE)  -I../../package_signal/include -I../../package_stft/include -I../../package_image/include
+
+#
+# The specific dependance
+#
+$(OBJS) $(MULTIDEP) ../../kernel/include/*.h ../../unix/include/*.h ../../package_signal/include/*.h ../../package_stft/include/*.h  ../../package_image/include/*.h
+$(OBJS) $(MULTIDEP)  $(INCLUDEDIR)/*.h
+

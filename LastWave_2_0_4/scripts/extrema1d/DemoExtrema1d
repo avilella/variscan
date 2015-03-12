@@ -1,0 +1,92 @@
+############################################################################
+#
+# Demo file for the extrema1d package
+#
+############################################################################
+
+
+# A simple procedure to generate a sigularity of Holder 1
+setproc _DemoSing {{&int size} {&float h 1}} \
+{
+  return XY(-1:#size:1,abs(X)^h)
+}
+
+setproc DemoExtrema1dSing {} "{{{} {Demo command that computes the extrema of the wavelet transform of a signal which \
+has one singularity (holder = 0.5) in white noise. It displays the signal, its wavelet transform and the \
+extrema representation. You can use the mouse to follow the wavelet transform values along a maxima line \
+in order to measure the Holder exponent.}}}" {
+  StartDemo DemoExtrema1dSing
+}
+
+setproc _DemoExtrema1dSing0 {} {
+
+  global objCur a
+ 
+  # Set the current wavelet transform to be a
+  a
+  
+  # Generate the signal
+  0 = [_DemoSing 10000 .5]
+  
+  0= 0a+.02*Grand
+  
+  # Compute the wavelet transform
+  cwtd 3 6 8 'g1'
+  
+  # Compute the extrema representation
+  extrema
+  
+  # Display the signal, the wavelet transform and the extrema representation
+  disp 0 a a.extrep
+
+  import args 1 System
+
+    printf "\nIf you want to learn how these graphs were generated look at the procedure \
+'_DemoExtrema1dSing0' in the file 'scripts/extrema1d/DemoExtrema1d'\n"
+
+}
+
+setproc _DemoExtrema1dSing1 {} {
+  printf "To learn about dealing with wavelet transforms you should first run the demos on wtrans1d\n"
+}
+
+setproc _DemoExtrema1dSing2 {} {
+  printf "You can try the different mouse cursor modes on the extrema representation by \
+just hitting the 'c' key while the mouse pointer pointing in the extrema \
+representation. There are 3 modes : none, cross-hair, circle. In the \
+last mode the closest extremum is circled and information on it are displayed.\n"
+}
+
+setproc _DemoExtrema1dSing3 {} {
+  printf "You can zoom any extrema representation using the 'usual' method. Use the left button and drag and drop \
+for zooming in and use the middle button for zooming out. \n\
+You can change the zoom mode by hitting the 'z' key over any extrema representation. \n\
+There are 2 modes, they are the same as ones used for wtrans1d.\n"
+}
+
+setproc _DemoExtrema1dSing4 {} {
+  printf "Remember you can type 'b' while pointing on the any graphic object (including the extrema representation) \
+to display short help on interaction with this graphic object.\n"
+}
+
+setproc _DemoExtrema1dSing5 {} {
+  printf "In order to measure the Holder exponent : use the mouse and click with \
+the right button holding the shift key down on one of the longest maxima lines. \
+It will display the log of the wavelet transform along this line versus \
+the log of the scales. \n\
+In order to measure the Holder exponent you need to make a fit of the \
+curve that you just displayed. In order to do so, you must select the \
+part of the curve you want to do the fit in by zooming the signal \
+(use the left and right buttons to zoom in and the middle one to zoom out) \
+and then, to perform the fit on the part which is displayed, just hit the \
+middle mouse button on the curve while holding the shift key down. \n\
+The estimation of the Holder H=0.5 will be displayed. \n"
+}
+
+setproc _DemoExtrema1dSing6 {} {
+  printf "Holding the shift key while clicking on the left button let you visualize a maxima line. \n\
+Holding the shift key while clicking on the middle button displays the wavelet transform values (NOT the log) \
+along the maxima lines versus the log of the scale.\n"
+}  
+
+help DemoExtrema1dSing

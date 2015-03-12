@@ -1,0 +1,20 @@
+# The name of the package
+PACKAGENAME = wtmm1d
+
+#
+# The specific list of Wtmm1d package files
+#
+OBJS = $(OBJDIR)wtmm1d_package.$(OBJEXT) \
+$(OBJDIR)pf_alloc.$(OBJEXT) \
+$(OBJDIR)pf_lib.$(OBJEXT) \
+$(OBJDIR)pf_functions.$(OBJEXT)
+
+#
+# The specific Wtmm1d options
+#
+OPTIONS  = $(CCOPTIONS) -I$(INCLUDEDIR) -I../../kernel/include -I../../package_signal/include -I../../package_wtrans1d/include -I../../package_extrema1d/include -I../../package_image/include -I../../unix/include
+
+#
+# The specific dependance
+#
+$(OBJS) $(MULTIDEP) ../../kernel/include/*.h ../../unix/include/*.h  ../../package_wtrans1d/include/*.h  ../../package_signal/include/*.h ../../package_extrema1d/include/*.h $(INCLUDEDIR)/*.h ../../package_image/include/*.h

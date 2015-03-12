@@ -1,0 +1,296 @@
+#..........................................................................
+#                                                                         
+#      L a s t W a v e    P a c k a g e 'disp' 2.0
+#
+#      Author Emmanuel Bacry                                               
+#                                                                          
+#..........................................................................
+
+#
+# File to manage cursors in objects included in Views (and thus EViews too)
+#
+# (Note that this file does not deal directly with FramedViews but just with Views)
+#
+
+
+#
+# 'SetCursorBindings' is the main procedure to call in order to make all the instances of a 'class'
+# to draw cursors when the mouse is in one of them.
+# 'drawCursors' is a list of scripts that will be called to draw the cursor. 
+# LastWave will shift from one script to another when the 'c' key is hit.
+#
+# These drawing scripts must
+#    1) draw whatever they want to draw
+#    2) set the global variable 'bindings.cursor.erase' to a command line
+#       to be executed in order to erase the cursor that was just been drawn
+#    3) return the line to be printed
+# 
+# They have two arguments which are the 'bindings.cursor' variable and the string 'str'
+# that corresponds to basic information (object the mouse is in, position, ...) that
+# you should use at the beginning of the line to be printed
+#
+# In this file you will find such a basic script called '_DrawCursorNone'.
+# It will draw no cursor (just some text information will be printed)
+#
+# Let us note that in order to be activate the cursor you need to activate the
+# binding 'cursor'. This will be done for instance in the windowDisp file whenever
+# we enter such a window
+#
+# The cursor system uses a global array variable named 'bindings.cursor'
+# It has the following indexes
+#
+#    - flag : is 0 when no cursor is currently drawn in the View
+#    - class : The class of the current gobject the mouse is in
+#    - erase : the command to be sent in order to erase the currently cursor drawn
+#              in the View 
+#    - obj   : The id of the current object the mouse is in
+#    - view  : The current view the mouse is in
+#
+#    - <classN> : There are as many such indexes as the number of classes
+#                 that answer to cursor messages. They correspond to arrays
+#                 with the following indexes :
+#          - scripts : The corresponding list of 'drawCursors' scripts
+#          - n       : The current script index in the list 'scripts' just above
+#                      (This is changed by hitting the key 'c')
+#          - curScript : The script in 'scripts' corresponding to index 'n' 
+#
+
+setproc SetCursorBindings {{&word class} drawCursors} \
+"{{{*className* <listv of procedures>} {*class* must \
+be a valid classname of a class which corresponds to objects that can be displayed \
+in Views. When called this function allows to manage cursor display when the mouse \
+points on an object of class *className*. The <listv of procedures> is a listv of \
+different display procedures. You can switch from one to the next using the 'c' key. \
+A valid disply procedure must have one argument 'cursor'. This argument corresponds to \
+an array which has 2 fields, one is an input field : \n\
+- view : the name of the view gobject \n\
+and the other one is an output field (you are supposed to set it)
+- erase : the script that should be called to erase the cursor you displayed\n\
+The procedure should \n\
+- manage drawing the cursor (generally using the variables @x and @y) (You \
+can use the _ViewDrawCrossHair procedure for that purpose (see examples in \
+signal.pkg) \n\
+- set the cursor.erase variable to a valid script that will erase the drawing \n\
+- return a string that will be displayed in the box at the bottom f the window}}}" \
+{   
+
+  binding delete 'cursor' $class 
+  
+  setv  bindings.cursor.flag 0 -l 1 
+  setv  bindings.cursor.class class -l 1
+  setv  bindings.cursor.${class}.scripts drawCursors -l 1
+  setv  bindings.cursor.${class}.n 1 -l 1
+  setv bindings.cursor.${class}.curScript drawCursors[0] -l 1
+
+  setbinding 'cursor' "{{Type 'c' to change cursor mode}}"    
+  setbinding 'cursor' $class motion any {_CursorMove}
+  setbinding 'cursor' $class buttonMotion any {_CursorMove}
+  setbinding 'cursor' $class enter %%`_CursorEnter '$class'`
+  setbinding 'cursor' $class keyDown 'c' {_CursorChange}
+  setbinding 'cursor' $class leave {_CursorLeave}
+  setbinding 'cursor' $class draw {_CursorDraw}
+  setbinding 'cursor' $class delete {_CursorDelete}
+    
+}
+
+
+#
+# Here are the scripts that are called on the different bindings
+#
+
+# draw event (actually we do not draw anything)
+setproc _CursorDraw {} {
+  global &array bindings.cursor
+  if (![var exist cursor.obj]) {return}
+  if ([msge @object id]!=cursor.obj) {return}
+  cursor.flag=0
+}
+
+#delete event
+setproc _CursorDelete {} {
+  global &array bindings.cursor
+  if (![var exist cursor.obj]) {return}
+  if ([msge @object id]!=cursor.obj) {return}
+  _CursorViewErase
+  var delete cursor.obj
+}
+
+# 'c' key event
+setproc _CursorChange {{&int nn -1}} {
+  
+  global &array bindings.cursor
+  
+  if (![var exist cursor.view]) {return}
+
+  class=cursor.class
+  n=cursor.${class}.n
+
+  if (nn == n) {return}
+  
+  _CursorViewErase
+    
+  l=cursor.${class}.scripts.length
+
+  if (nn == -1) {
+    n = n%l+1
+  } else {
+    n = (nn-1)%l+1
+  }
+  
+  cursor.${class}.n=n
+  cursor.${class}.curScript=cursor.${class}.scripts[n-1]
+  
+  _CursorViewDraw
+  
+  setgu @object.^.^ -string "Cursor mode is '$n'"
+}
+
+setproc _CursorMode {} {
+  
+  global &array bindings.cursor
+  
+  if (![var exist cursor.view]) {return 0}
+
+  class=cursor.class
+  return cursor.${class}.n
+}
+
+# 'enter' event    
+setproc _CursorEnter {class} {
+
+  global &array bindings.cursor
+
+  # We must look whether 'class' is the right class to process the event
+  class1=[msge @object class]
+  while (1) {
+    if ([var exist cursor.$class1]) {break}
+    class1=[gclass father class1]
+    if (class1 == "GObject") {break}
+  }
+  if (class1 != class) {return}
+    
+  cursor.class=class
+    
+  # Get the view object
+  if ([msge @object class 'View']) {
+    obj=@objname
+  } else {
+    obj=@objname+'.^'
+  }
+    
+  if ([var exist cursor.view]) {var delete cursor.view}
+  
+  # If it is not a view then CIAO !
+  if (![msge $obj class 'View']) {return}
+
+  cursor.view=obj  
+  cursor.obj=[msge $@objname id]
+  
+  cursor.${class}.curScript =cursor.${class}.scripts[cursor.${class}.n-1]
+}
+
+#'leave' event
+setproc _CursorLeave {} {
+
+  global &array bindings.cursor
+
+  if (![var exist cursor.view]) {
+    return
+  }
+
+  _CursorViewErase 
+
+  var delete cursor.obj
+  
+  setgu ${cursor.view} -string " "  
+
+  var delete cursor.view
+}
+
+# 'move' event
+setproc _CursorMove {} {
+
+  global &array bindings.cursor
+
+  if (![var exist cursor.view]) {
+    if ([msge @object class 'View']) {
+      # We must get the first class to process cursor event
+      class1=[msge @object class]
+      while (1) {
+        if ([var exist cursor.$class1]) {break}
+        class1=[gclass father class1]
+        if (class1 == 'GObject') {break}
+      }
+      if (class1 == 'GObject') {return}
+      _CursorEnter class1
+    } else {return}
+  }
+
+  _CursorViewErase
+  
+  _CursorViewDraw  
+}
+
+  
+#
+# Some useful subroutine
+#
+
+setproc _CursorViewDraw {} {
+
+  global &array bindings.cursor
+    
+  if (cursor.flag == 1) {return}
+  
+  class=cursor.class
+  
+  str=[apply args cursor.${class}.curScript cursor] 
+    
+  cursor.flag=1
+    
+  setgu ${cursor.view} -string str  
+}
+
+
+setproc _CursorViewErase {} {
+  
+  global &array bindings.cursor
+
+  if (cursor.flag == 0) {return}
+  
+  class=cursor.class
+
+  if (cursor.erase isnot null) {
+    eval cursor.erase
+  }
+
+  cursor.flag=0
+}
+
+
+# If you need to draw a cross hair cursor at location x,y
+# This script will do so
+setproc _ViewDrawCrossHair {view x y} {
+  
+  list=[setg $view -bound]
+  draw line $view list[0] y list[1] y -mode 'inverse' -clip
+  draw line $view x list[2]  x list[3] -mode 'inverse' -clip
+}
+
+setproc _ViewDrawCrossHairCursor {cursor}  {
+  _ViewDrawCrossHair cursor.view @x @y
+  cursor.erase = %%`_ViewDrawCrossHair '$cursor.view' $@x $@y`
+  return "$@objname : $@x $@y"
+}
+
+# This is the script you can send to 'SetCursorBindings' if you don't want
+# anything but a simple line information to be printed
+setproc _DrawCursorNone {cursor} {
+  cursor.erase=null
+  return "$@objname : $@x $@y"
+}
+
+
+
+# Perform displaying cursor on views
+SetCursorBindings View {%_DrawCursorNone %_ViewDrawCrossHairCursor}

@@ -1,0 +1,142 @@
+############################################################################
+#
+# This is a demo file for the MP package that allows to
+# reproduce the figures 1-3 of the paper
+# "Fast Matching Pursuit with a Multiscale Dictionary of Gaussian Chirps"
+# by R. Gribonval,
+# IEEE Transactions on Signal Processing, Vol. 49, No. 5, May 2001
+#
+############################################################################
+
+# Parameters for a nice display
+#gclass.FramedView.default.axisMargin=0
+#gclass.FramedView.default.ticksIn=1
+#gclass.FramedView.default.axis=1
+#gclass.FramedView.default.axisFrame=1
+#gclass.FramedView.default.viewMargin={30 20 25 20}
+#gclass.FramedView.default.labelFont= '12-italic'
+
+#gclass.WindowDisp.default.bg='white'
+#gclass.WindowDisp.default.dx=0
+#gclass.WindowDisp.default.dy=0
+
+#colormap current 'grey'
+
+#
+# Figure 1 : a chirp atom and its Wigner-Ville distribution
+#
+setproc DemoChirpMP_1 {} "{{{} {Demo command that reproduces the figure 1 of the paper 'Fast Matching Pursuit with a Multiscale Dictionary of Gaussian Chirps' by R. Gribonval.}}}" {
+  import args 1 System
+  if (System == 'unix') {
+  echo 
+  echo WARNING : For unix users, there is a bug that forbids you to close
+  echo the window using the X-Window menu. It will core dump right away. 
+  echo To delete a window just hit the 'f1' key while the mouse is in the
+  echo window you want to delete.
+  }
+  import args m
+  import args objCur
+  scriptDirectory=[var unix LWSOURCEDIR]
+  dataDir="${scriptDirectory}/mp/data"
+
+  # Set the current book to 'm'
+  m
+
+  # Reads the data from files
+  book readold 0  '${dataDir}/chirpatom.book' 1024
+# The 1024 is not clear!
+#  book write '${dataDir}/chirpatomnew.book'
+#  book read '${dataDir}/chirpatomnew.book'
+  read 0    "${dataDir}/chirpatom.sig"
+
+  # Display with captions and legends
+  disp Figure1 0 m -size 600 500 -..fv1 -xLabel "TIME (SECONDS)" -yLabel "AMPLITUDE" -..fv2 -xLabel "TIME (SECONDS)" -yLabel "FREQUENCY (HERTZ)" -..xlabel -pos 550 200 -..ylabel -pos 125 5
+
+}
+
+help DemoChirpMP_1
+
+#
+# Figure 2-3-4 : comparison of the decomposition of a musical
+#                recording with Gabor MP/Fast Chirp Ridge Pursuit.
+#
+
+#
+# Figure 2 : comparison of the decay of the residual
+#
+setproc DemoChirpMP_2 {} "{{{} {Demo command that reproduces the figure 2 of the paper 'Fast Matching Pursuit with a Multiscale Dictionary of Gaussian Chirps' by R. Gribonval.}}}" {
+  import args 1 System
+  if (System == 'unix') {
+  echo 
+  echo WARNING : For unix users, there is a bug that forbids you to close
+  echo the window using the X-Window menu. It will core dump right away. 
+  echo To delete a window just hit the 'f1' key while the mouse is in the
+  echo window you want to delete.
+  }
+  import args m
+  import args n
+  import args objCur
+  scriptDirectory=[var unix LWSOURCEDIR]
+  dataDir="${scriptDirectory}/mp/data"
+
+  # Reads the data from files
+  book read m "${dataDir}/dalbavie-plain-new.book"
+  book read n "${dataDir}/dalbavie-chirp-new.book"
+
+  # Set the current book to 'm'
+  m
+
+  # Uncomment the following lines to recompute the books
+# m
+# read 0 "${dataDir}/dalbavie.sig"
+# fastmpd m {0m} 5000 1000 2^(2:11) {'gauss'} {}
+# book write "${dataDir}/dalbavie-plain-new.book"
+# fastmpd m {0m} 5000 1000 2^(2:11) {'gauss'} {'chirp'}
+# book write "${dataDir}/dalbavie-chirp-new.book"
+  quit
+  # Gets two signals containing the decay of the energy of the residual
+  1m=[decay m 1]
+  2m=[decay n 1]
+  # A signal serves as the baseline
+  3m=0*1m
+
+  # Display with captions and legends
+  disp Figure2   {{1 2 3}} -size 600 250 -..2 -pen 6 -..fv1 -xLabel 'm' -yLabel 'dB' -..xlabel -pos 590 220 -..ylabel -pos 25 5
+
+}
+
+help DemoChirpMP_2
+
+#
+# Figure 3 : comparison of the whole TFD with a zoom on the "interesting part"
+#
+setproc DemoChirpMP_3 {} "{{{} {Demo command that reproduces the figure 3 of the paper 'Fast Matching Pursuit with a Multiscale Dictionary of Gaussian Chirps' by R. Gribonval.}}}" {
+  import args 1 System
+  if (System == 'unix') {
+  echo 
+  echo WARNING : For unix users, there is a bug that forbids you to close
+  echo the window using the X-Window menu. It will core dump right away. 
+  echo To delete a window just hit the 'f1' key while the mouse is in the
+  echo window you want to delete.
+  }
+  import args m
+  import args n
+  import args objCur
+  scriptDirectory=[var unix LWSOURCEDIR]
+  dataDir="${scriptDirectory}/mp/data"
+
+  # Reads the data from files
+  book read m "${dataDir}/dalbavie-plain-new.book"
+  book read n "${dataDir}/dalbavie-chirp-new.book"
+
+  # Set the current book to 'm'
+  m
+
+  # Display with captions and legends
+  disp Figure3  m n -size 600 500 -x 2.05 2.5 -y 3500 4200 -..1 -expo 45 -..2 -expo 45 -..fv1 -xLabel "TIME (SECONDS)" -yLabel "FREQUENCY (HERTZ)"  -..fv2 -xLabel "TIME (SECONDS)" -yLabel "FREQUENCY (HERTZ)" -..xlabel -pos 550 200 -..ylabel -pos 125 5
+  
+}
+
+help DemoChirpMP_3
+
+

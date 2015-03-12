@@ -1,0 +1,181 @@
+#..........................................................................
+#                                                                         
+#      L a s t W a v e    P a c k a g e 'wtrans1d' 2.0
+#
+#      Author Emmanuel Bacry                                               
+#      
+#      File associated the wtrans1d package
+#                                                                    
+#..........................................................................
+
+
+# The default position of wtrans windows when 'disp' is used
+disp.wtrans.rect={370 55 550 200}
+
+# Perform zoom on wtrans with the mouse
+SetZoomBindings GraphWtrans {'xrect' 'normal'}
+
+
+#
+# Perform cursor displaying on wtrans
+#
+
+setproc _CursorTextGraphWtrans {}  {
+  wtrans = [setg @object -graph]
+  nv = wtrans.nvoice
+  no = wtrans.noct
+  v = @y%nv
+  o = 1+@y//nv
+
+  if (@y < 0 || @y >nv*no) {
+    return "$@objname : $@x [index = ?] a = ? [$@y = ? ?]  val = ?"   
+  }
+  
+  sig = wtrans.D[o,v]
+  index = sig.index[@x]
+   
+  a = 2^(o-1+v/nv)
+  val = sig[index]
+  scale = (o-1)*nv+v
+  
+  return "$@objname : $@x [index = $index] a = $a [$scale = $o $v]  val = $val"   
+}
+
+setproc _DrawCursorNoneGraphWtrans {{&var cursor}} {
+  cursor.erase=null
+  return [_CursorTextGraphWtrans]
+}
+
+setproc _DrawCursorGraphWtrans {{&var cursor}}  {
+  _ViewDrawCrossHair cursor.view $@x $@y
+  cursor.erase=%%`_ViewDrawCrossHair '$cursor.view' $@x $@y`
+  return [_CursorTextGraphWtrans]
+}
+
+SetCursorBindings GraphWtrans {%_DrawCursorNoneGraphWtrans %_DrawCursorGraphWtrans}
+
+  
+# Set the filter directory for the (bi)orthogonal wavelet transform 
+if (System == 'mac') {
+  Wtrans1dFilterDirectory='scripts/wtrans1d/filters'
+} else {
+  dir=[var unix LWSOURCEDIR]
+  Wtrans1dFilterDirectory= '$dir/wtrans1d/filters'
+}
+
+#
+# Let's create some wtrans structures a,b,...
+# and the corresponding script for changing the objCur
+#
+if ([var exist a] == 0) {
+
+  foreach w "a b" {
+
+    # let's create the wtransform
+    wt = [new &wtrans]
+    wt.name = w
+
+    # Set it to the right variable
+    $w = wt
+    
+    # and create the corresponding command
+    # It has to import the 'objCur' from the calling environement and the wtransform from the global one
+    # and to set the first to the second one
+    setproc $w {} %%`\
+      import args 1 $w 
+      import args -1 objCur
+      objCur = null
+      objCur = $w
+      return
+    `
+  }
+ 
+  objCur=null
+  objCur=a
+  
+  var delete w
+  var delete wt
+}
+
+
+###############################################
+#
+# Horizontal sections
+#
+###############################################
+  
+binding delete 'whsection'
+
+setproc _WHSection {} {
+   
+  # Check that the father is a View 
+  if (![msge ${@objname}.^ class 'View']) {return}
+   
+  # Get the x bounds
+  bound=[setg ${@objname}.^ -bound]
+  xMin=bound[0]
+  xMax=bound[1]
+  
+  # Get the wtrans
+  wtrans = [setg $@objname -graph]
+
+  # Get the signal
+  nv=wtrans.nvoice
+  v=@y%nv
+  o=1+@y//nv
+  sig = wtrans.D[o,v]
+  
+  # Then just display it
+  disp sig -x xMin xMax
+}
+
+setbinding 'whsection' "{{Shift + Left button = horizontal section}}"  
+setbinding 'whsection' GraphWtrans leftButtonDown shift {_WHSection}
+
+binding activate 'whsection'
+
+
+###############################################
+#
+# Vertical sections
+#
+###############################################
+  
+binding delete 'wvsection'
+
+setproc _WVSection {flagLog} {
+   
+  # Check that the father is a View 
+  if (![msge ${@objname}.^ class 'View']) {return}
+
+  # Get the wtrans
+  wtrans = [setg $@objname -graph]
+
+  no=wtrans.noct
+  nv=wtrans.nvoice
+
+  sig = Zero(no*nv)
+  sig.x0 = 0
+  sig.dx = 1/nv
+  
+  i=0
+  foreach o 1:no {
+    foreach v 0:!nv {
+      sigd = wtrans.D[o,v]
+      index = sigd.index[@x]
+      sig[i] = sigd[index]
+      i+=1
+    }
+  }
+  if (flagLog == 1) {
+    disp log2(abs(sig)) -..fv1 -yLabel 'LOG(a)'
+  } else {disp sig}
+}
+
+setbinding 'wvsection' "{{Shift + Middle button = vertical (linear) section} \
+{Shift + Right button = vertical (log) section}}"
+setbinding 'wvsection' GraphWtrans middleButtonDown shift {_WVSection 0}
+setbinding 'wvsection' GraphWtrans rightButtonDown shift {_WVSection 1}
+
+binding activate 'wvsection'  
+    

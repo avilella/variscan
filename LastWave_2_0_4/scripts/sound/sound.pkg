@@ -1,0 +1,299 @@
+#..........................................................................
+#                                                                         
+#      L a s t W a v e    P a c k a g e 'sound' 2.0
+#
+#      Author Emmanuel Bacry                                               
+#      
+#      File associated the sound package
+#                                                                    
+#..........................................................................
+
+
+############################################################
+#
+# THE NEXT GROUP OF LINES IS FOR UNIX COMPUTERS ONLY
+# EXCEPT CYGWIN COMPUTERS WHERE THE BUILTIN WIN32 AUDIO IS USED
+#
+# Variables to be set for being able to play a sound
+#
+############################################################
+
+if (System=='unix'&&Computer!='cygwin') {
+
+# Name of the file to be played
+Sound.file="/tmp/soundToBePlayed.aif"
+
+# Format of the file
+Sound.format="aiff16"
+
+# System call to play the file
+# On some Linux systems the following call works
+# Sound.play="play $Sound.file"
+# On other systems, you should set the system call for playing sound
+Sound.play="Replace this string by the system call"
+}
+#
+# End of the part specific to unix non-cygwin computers
+#
+
+
+############################################################
+#
+# Make available the bindings that allow to select a region of a signal 
+#
+############################################################
+
+_SetRectSelectBindings GraphSignal 'signal' 'x'
+
+
+
+######################################################################
+#
+# Define bindings that allow to play the selected region
+#
+######################################################################
+
+binding delete 'playSelectSignal'
+
+setbinding 'playSelectSignal' "{{Shift+Tab or escape = Play the whole signal} {Tab = Play the part of the signal which has been selected.}}"
+
+setbinding 'playSelectSignal' GraphSignal keyDown 'tab' %%_SelectPlayGraphSignal 
+setbinding 'playSelectSignal' GraphSignal keyDown '{{shift tab}}' %%_PlayAllGraphSignal 
+setbinding 'playSelectSignal' GraphSignal keyDown 'esc' %%_PlayAllGraphSignal 
+
+setproc _SelectPlayGraphSignal {} {
+
+   # Are we in a view ? 
+  if (![msge @father class 'View']) {return}
+  
+  # Is there a selection ?
+  if (![msge @object.^.select* exist]) {return}
+
+  # If not just one selection then we must decide which one to use
+  list=[msge @object.^ list 'select*']
+  result=""
+  if (list.llength > 1) {
+    foreach s list {
+      {x y w h}=[setg @object.^.$s -arect]
+      if (x > @i) {continue}
+      if (x+w < @i) {continue}
+      if (y > @j) {continue}
+      if (y+h < @j) {continue}
+      result=s
+      break
+    }
+  } else {
+    result=list
+  }
+  
+  # Did we find one ?
+  if (result == "") {
+    terminal beep
+    printf "\n*** Sorry, there are several selections in this view, you must choose one by going inside it with the mouse and then play again.\n"
+    return
+  }  
+  
+  # Get the selection rectangle
+  {x y w h}=[setg @object.^.$result -rect]
+  if (w<0) {
+    x+=w
+    w-=w
+  }
+
+  # Let's play it
+  sig = [setg @object -graph]
+  sound = sig[*x,x:x+w]
+  sound play sound
+}
+
+
+setproc _PlayAllGraphSignal {} {
+
+  # Let's play it
+  sig = [setg @object -graph]
+  sound play sig
+
+}
+
+
+binding activate 'playSelectSignal'
+
+
+
+##################################################################
+#
+# The 'sound play' command on Unix computers (non-Cygwin) computers
+# ('sound record is not implemented on Unix computers)
+#
+#    WARNING :
+#       Since I could not find a standard way to play a sound
+#       on a unix machine, I wrote a script that writes the signal 
+#       be played in a temporary file and then it makes a system call
+#       to play the file.... You must set the variables at the beginning of this file.
+#       In order to understand how just type 'sound play' 
+#
+##################################################################
+
+
+#
+# We first change the help of the 'sound' command
+#
+helpSound=%\\sound.shelp
+helpPlay="{{play <sigL> [<sigR>] [<sampleFreq>] [-n]} {WARNING : \
+On Unix computers, there is no builtin command to play audio signals, \
+hence you MUST perform some changes before using this command. \
+In order to learn about the changes just type 'sound play'. \
+On Macintosh and Windows (Cygwin) computers, it works just fine. \
+\
+This command plays a signal <sigL> in mono or a pair of (left/right) signals \
+<sigL> <sigR> in stereo using the default sound output device. \
+\
+By default, a mono signal is normalized (between -1 and 1) before playing, \
+and a stereo signal is jointly normalized (i.e. the relative level of the \
+two channels is preserved). Option '-n' allows to avoid normalization \
+(both <sigL> and <sigR> are then assumed to have values between -1 and 1, \
+otherwise clicks will occur).\
+\
+If <sampleFreq> is not specified then the 'dx' field of <sigL> is used to \
+compute the sample frequency, otherwise <sampleFreq> is used.}}"
+helpSound=helpPlay + " " + helpSound[*list,1:]
+
+setproc sound {{&word action} {&wordlist .l}} helpSound {
+
+  global System Computer
+
+  #
+  # Non Unix systems 
+  # as well as
+  # Machine independent sound commands : all but 'record' and 'play'
+  #
+ if (System!='unix' || Computer=='cygwin'  || (action !='record' && action !='play')) {
+   r= [eval -1 %%`\\\\sound $action $l`]
+    if (r isnot null) {return r}
+    return
+  }
+
+  # Unix machines : record case
+  if (action == 'record') {
+    terminal beep
+    printf "Sorry, the 'sound record' command is not implemented on Unix computers\n"
+    return
+  }
+
+  #########################
+  #
+  # The 'play' action on Unix (non Cygwin) systems
+  #
+  #########################
+
+  # Is the sound configured ?
+  global Sound
+  if (Sound.play[:6] == 'Replace') {
+    _UnixPlayWarning
+    return
+  } 
+  
+  # Get the signal
+  sig = l[*list,0]
+  l = l[*list,1:]
+  import args &signali `$sig s`
+  
+  # Get the eventual sampling frequency
+  if (l!="" && l!="-n") {
+    sf = l[*list,0]
+    l = l[*list,1:]
+  } else {
+    sf = 1/s.dx
+  }
+
+  # Some checkings
+  if (sf < 2000) {
+    errorf "The sampling frequency is too low (< 2000Hz) !"
+  }
+  
+  # Get the eventual "-n" option
+  if (l!="") {
+    opt = l[*list,0]
+    l = l[*list,1:]    
+    if (l=="") {
+      errorf "Bad option '%s'" $l
+    }
+    if (opt!="-n") {
+      errorf "Bad option '%s'" $opt
+    }
+    flagNorm=0
+  } else {
+    flagNorm=1
+  }
+  
+  # Then play it
+  _UnixPlay s sf flagNorm
+}
+var delete helpSound
+var delete helpPlay
+
+
+
+##############################
+#
+# COMMAND TO BE CHANGED
+#
+##############################
+
+setproc _UnixPlay {{&signali sig} {&float sf} flagNorm} {
+
+  global Sound
+  
+  if (Sound.play[:6] == 'Replace') {
+    _UnixPlayWarning
+    return
+  } 
+  
+  # We change the dx of the signal
+  oldDx=sig.dx
+  sig.dx=1/sf
+  
+  # We write the temporary file using the format Sound.format
+  if (flagNorm) {
+    sound write sig Sound.file Sound.format
+  } else {
+    sound write sig Sound.file Sound.format -n 1
+  }
+
+  # We set back the dx of the signal
+  sig.dx=oldDx
+    
+  # Then we play the sound
+  shell $Sound.play
+}
+  
+
+setproc _UnixPlayWarning {} {
+    echo ``
+    echo `*******************************************`
+    echo `*                                         *`
+    echo `*            PLEASE READ ME               *`
+    echo `*                                         *`
+    echo `*******************************************`
+    echo ``
+    echo `On Unix computers, you need to configure some variables in order to be able to play a sound.`
+    echo `Since there is no standard (ANSI) way to play a sound, LastWave writes the signal to be played \
+in a file and then makes a system call to play it.`
+    echo `Since the system call is hardware dependent, you must specify what this system call is.`
+    echo `So, first you need to know what the system call on your computer is.`
+    echo `Then edit the scripts/sound/sound.pkg file. At the very beginning of this file, there are \
+three variables whose values need to be specified :`
+    echo `       - the first one ('Sound.file') is the name of the file it should be saved in. `
+    echo `         Default is '/tmp/soundToBePlayed.aif'.`
+    echo `       - the second one ('Sound.format') is the format the sound file should be in. `
+    echo `         Default format is aiff16, i.e., aiff format using 16 bits.`
+    echo `         To know which formats are avalaible just type 'sound format'.`
+    echo `       - the third one ('Sound.play') is the (unix) system call to be made. `
+    echo `         It should look something like :`
+    echo `               'play <name of the file>'`
+    echo ``
+    echo `After setting these variables you should 'resource' the file typing `
+    echo `               'source sound.pkg'`
+    echo ``
+    echo `Then you are all set !`
+}

@@ -1,0 +1,19 @@
+# The kernel and machine dependent parts
+LISTKERNEL  = kernel \
+user \
+unix  \
+win32 \
+ansi 
+
+# The different (machine independent) packages
+LISTPACKAGE = image \
+signal \
+sound \
+wtrans1d \
+extrema1d  \
+mp  \
+stft \
+wtmm1d  \
+dwtrans2d \
+owtrans2d \
+compress2d

@@ -1,0 +1,36 @@
+# The name of the package
+
+PACKAGENAME = user
+
+
+
+#
+
+# The specific (short!) list of user files
+
+#
+
+OBJS = $(OBJDIR)user.$(OBJEXT)
+
+
+
+#
+
+# The specific user options
+
+#
+
+OPTIONS  = $(CCOPTIONS) -I$(INCLUDEDIR) -I../../kernel/include -I../../unix/include -I$(X11INCLUDE)
+
+
+
+#
+
+# The specific dependance
+
+#
+
+$(OBJS) $(MULTIDEP) ../../kernel/include/*.h ../../unix/include/*.h
+
+
+

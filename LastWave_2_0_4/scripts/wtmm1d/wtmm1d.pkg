@@ -1,0 +1,94 @@
+#..........................................................................#
+#                                                                          #
+#  L a s t W a v e    P a c k a g e 'wtmm1d' 2.0                           #
+#                                                                          #
+#      Copyright (C) 1998-2002 Benjamin Audit.                             #
+#      email : audit@ebi.ac.uk                                             #
+#                                                                          #
+#..........................................................................#
+#                                                                          #
+#      This program is a free software, you can redistribute it and/or     #
+#      modify it under the terms of the GNU General Public License as      #
+#      published by the Free Software Foundation; either version 2 of the  #
+#      License, or (at your option) any later version                      #
+#                                                                          #
+#      This program is distributed in the hope that it will be useful,     #
+#      but WITHOUT ANY WARRANTY; without even the implied warranty of      #
+#      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the       #
+#      GNU General Public License for more details.                        #
+#                                                                          #
+#      You should have received a copy of the GNU General Public License   #
+#      along with this program (in a file named COPYRIGHT);                #
+#      if not, write to the Free Software Foundation, Inc.,                #
+#      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA             #
+#                                                                          #
+#..........................................................................#
+
+#
+# Script function to automatically get the singularity spectrum from
+# a PF structure.
+# 
+setproc singSpectrum {{&PF pf} {&float log2aMin} {&float log2aMax}} \
+    "{{{<pf> <log2ScaleMin> <log2ScaleMax>} {Computes the singularity spectrum D(h) \
+from the partition function structure <pf>. It reads the partition function values \
+for both h(q) and D(q) for all the available q's then performs automatic fits \
+of the partition functions between the log scale values <log2ScaleMin> and <log2ScaleMax> in order \
+to obtain the h(q) and D(q) values. The D(h) function is stored in the (xy) signal <signalOut>. \
+WARNING : the fits are done automatically between <logScaleMin> and <logScaleMax>, you should \
+first check by hand that they are not crazy fits !!}}}" \
+{
+
+    # Init the result signal as an XY empty signal
+    result = XY(Zero(pf.qnumber),Zero)
+    
+    # Init the loop
+    i = 0
+    # main Loop
+    foreach q pf.qlist {
+	# Get the h(q) value and sets it in result (x array)
+	result.X[i] = [stats fit [pf get h pf q] -x log2aMin log2aMax][0]
+      
+	# Get the D(q) value and sets it in result (y array)
+	result.Y[i] = [stats fit [pf get d pf q] -x log2aMin log2aMax][0]
+	
+	i+=1
+    }
+
+    # sort according to x-array
+    sort result
+    
+    return result
+}
+
+
+#
+# Script function to automatically get the tau(q) spectrum from
+# a PF structure.
+# 
+setproc tauqSpectrum {{&PF pf} {&float log2aMin} {&float log2aMax}} \
+    "{{{<pf> <log2ScaleMin> <log2ScaleMax>} {Computes the tau(q) spectrum  \
+from the partition function structure <pf>. It reads the partition function values \
+for tau(q) for all the available q's then performs automatic fits \
+of the partition functions between the log scale values <log2ScaleMin> and <log2ScaleMax> in order \
+to obtain the tau(q) values which are stored in <signalOut>. \
+WARNING : the fits are done automatically between <log2ScaleMin> and <log2ScaleMax>, you should \
+first check by hand that they are not crazy fits !!}}}" \
+    {
+	
+	result = XY(Zero(pf.qnumber),Zero)
+	
+	# Init the loop
+	i = 0
+	# main Loop
+	foreach q pf.qlist {
+	    # Set the q      
+	    result.X[i] = q
+	    # Get the T(q) value and sets it in result (y array)
+	    result.Y[i] = [stats fit [pf get t pf q] -x log2aMin log2aMax][0]
+	    
+	    i+=1
+	}
+	
+	return result
+    }
+

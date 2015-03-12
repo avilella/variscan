@@ -1,0 +1,33 @@
+m
+right=[new &signal]
+left=[new &signal]
+sin right 1024 100
+sin left  1024 150
+set alpha 0.6
+
+# Plain mix : panpot type
+signal new rightmix $alpha*right+(1-$alpha)*left
+signal new leftmix  (1-$alpha)*right+$alpha*left
+# More intricate : uniform delay (independent of frequency)
+
+#sound read 0 1 schubert_130_200_11k.wav  -d 3 -s 2.45
+
+stereomp m n rightmix leftmix 100 0 0 -v
+0m=m.wcoeff2
+1m=n.wcoeff2
+2m=m.phase
+3m=n.phase
+disp LogAmpPhase 10*log(#0/#1)/log(10) frac(#2-#3)
+
+rightrecons=[new &signal]
+leftrecons=[new &signal]
+mpr m 4 log(#0/#1)>=0
+mpr m 5 log(#0/#1)<0
+mpr n 6 log(#0/#1)>=0
+mpr n 7 log(#0/#1)<0
+s= #4+#6 rightrecons
+s= #5+#7 leftrecons
+
+disp Error right-rightrecons left-leftrecons
+disp Error right rightrecons left leftrecons
+

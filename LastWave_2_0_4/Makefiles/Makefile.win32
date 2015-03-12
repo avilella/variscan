@@ -1,0 +1,91 @@
+#
+# Makefile for LastWave 2.0.3 for Win32, Copyright 2002 Remi Gribonval, INRIA
+#
+VERSION = _2_0_3
+
+#-----------------------------------------------------
+# --- The only paths you may need to change !
+#
+# Remark: the variable LWPATH should later be setup in
+#         your  .*shrc/.*profile or .*login file
+#         together with the LWSOURCEDIR variable
+#-----------------------------------------------------
+HOME     = Z:
+LWPATH   = $(HOME)\softs\LastWave$(VERSION)
+BINNAME  = lw
+#-----------------------------------------------------
+# Machine dependant definitions
+# (compiler options, library paths, and ARCH variable)
+#
+# Remark: later we may have to perform here what is
+#         currently done in computer.h
+#-----------------------------------------------------
+!include MakeDefs.win32
+#-----------------------------------------------------
+# The path for the executable
+RUN       = $(BINPATH)$(BINNAME)
+DLL       = $(LIBPATH)$(BINNAME).$(SHAREDEXT)
+
+# The list of kernel and machine dependent files
+# as will as the list of packages
+!include PackageList
+
+# To make the executable, we need  the kernel and packages libraries
+all : libkernel libpackages
+	$(CC) -e$(RUN).$(EXEEXT) ..\kernel\obj\win32\libkernel.$(LIBEXT) ..\user\obj\win32\libuser.$(LIBEXT) ..\ansi\obj\win32\libansi.$(LIBEXT) ..\unix\obj\win32\libunix.$(LIBEXT) ..\win32\obj\win32\libwin32.$(LIBEXT) ..\java\obj\win32\libjava.$(LIBEXT) ..\package_signal\obj\win32\libsignal.$(LIBEXT) ..\package_image\obj\win32\libimage.$(LIBEXT) ..\package_sound\obj\win32\libsound.$(LIBEXT) ..\package_wtrans1d\obj\win32\libwtrans1d.$(LIBEXT) ..\package_extrema1d\obj\win32\libextrema1d.$(LIBEXT) ..\package_mp\obj\win32\libmp.$(LIBEXT) ..\package_stft\obj\win32\libstft.$(LIBEXT) ..\package_wtmm1d\obj\win32\libwtmm1d.$(LIBEXT) ..\package_dwtrans2d\obj\win32\libdwtrans2d.$(LIBEXT) ..\package_owtrans2d\obj\win32\libowtrans2d.$(LIBEXT) ..\package_compress2d\obj\win32\libcompress2d.$(LIBEXT)
+
+#myall : libkernel libpackages
+#	@for %i in ($(LISTKERNEL)) do (tlib $(RUN).$(LIBEXT) -+ $(LWPATH)\%i\obj\$(ARCH)\lib%i.$(LIBEXT))
+#	@for %i in ($(LISTPACKAGES)) do (tlib $(RUN).$(LIBEXT) -+ $(LWPATH)\package_%i\obj\$(ARCH)\lib%i.$(LIBEXT))
+#	$(CC) -e$(RUN).$(EXEEXT) $(RUN).$(LIBEXT)
+
+dll : libkernel libpackages
+	$(CC) -tWD -e$(DLL) ..\kernel\obj\win32\*.$(OBJEXT) ..\user\obj\win32\*.$(OBJEXT) ..\ansi\obj\win32\*.$(OBJEXT) ..\unix\obj\win32\*.$(OBJEXT) ..\win32\obj\win32\*.$(OBJEXT) ..\java\obj\win32\*.$(OBJEXT) ..\package_signal\obj\win32\*.$(OBJEXT) ..\package_image\obj\win32\*.$(OBJEXT) ..\package_sound\obj\win32\*.$(OBJEXT) ..\package_wtrans1d\obj\win32\*.$(OBJEXT) ..\package_extrema1d\obj\win32\*.$(OBJEXT) ..\package_mp\obj\win32\*.$(OBJEXT) ..\package_stft\obj\win32\*.$(OBJEXT) ..\package_wtmm1d\obj\win32\*.$(OBJEXT) ..\package_dwtrans2d\obj\win32\*.$(OBJEXT) ..\package_owtrans2d\obj\win32\*.$(OBJEXT) ..\package_compress2d\obj\win32\*.$(OBJEXT)
+
+#	$(MV) $(RUN).$(SHAREDEXT) $(BINPATH)liblw.$(SHAREDEXT)
+
+	#$(CC) -tWD -e$(RUN).$(SHAREDEXT) ..\kernel\obj\win32\libkernel.$(LIBEXT) ..\user\obj\win32\libuser.$(LIBEXT) ..\ansi\obj\win32\libansi.$(LIBEXT) ..\unix\obj\win32\libunix.$(LIBEXT) ..\win32\obj\win32\libwin32.$(LIBEXT) ..\java\obj\win32\libjava.$(LIBEXT) ..\package_signal\obj\win32\libsignal.$(LIBEXT) ..\package_image\obj\win32\libimage.$(LIBEXT) ..\package_sound\obj\win32\libsound.$(LIBEXT) ..\package_wtrans1d\obj\win32\libwtrans1d.$(LIBEXT) ..\package_extrema1d\obj\win32\libextrema1d.$(LIBEXT) ..\package_mp\obj\win32\libmp.$(LIBEXT) ..\package_stft\obj\win32\libstft.$(LIBEXT) ..\package_wtmm1d\obj\win32\libwtmm1d.$(LIBEXT) ..\package_dwtrans2d\obj\win32\libdwtrans2d.$(LIBEXT) ..\package_owtrans2d\obj\win32\libowtrans2d.$(LIBEXT) ..\package_compress2d\obj\win32\libcompress2d.$(LIBEXT)
+
+libkernel :
+	for %i in  ($(LISTKERNEL))  do (cd $(LWPATH)\%i\obj & $(MAKE)  -f Makefile.win32 all)
+
+libpackages :
+	for %i in  ($(LISTPACKAGE))  do (cd $(LWPATH)\package_%i\obj & $(MAKE)  -f Makefile.win32 all)
+
+clean :
+	-for %i in  ($(LISTKERNEL))  do (cd $(LWPATH)\%i\obj & $(MAKE)  -f Makefile.win32 clean)
+	-for %i in  ($(LISTPACKAGE))  do (cd $(LWPATH)\package_%i\obj & $(MAKE)  -f Makefile.win32 clean)
+	$(RM) $(RUN)
+	$(RM) $(LWPATH)\Makefiles\*~
+
+# This is for development with emacs
+tags :
+	cd $(LWPATH)\ & etags *\src\*.c *\include\*.h
+
+# And this creates the obj/bin directories for the target architecture
+dirs :
+	-mkdir $(BINPATH)
+	-mkdir $(LIBPATH)
+	-for %i in ($(LISTKERNEL)) do mkdir $(LWPATH)\%i\obj\$(ARCH)
+	-for %i in ($(LISTPACKAGE)) do mkdir $(LWPATH)\package_%i\obj\$(ARCH)
+
+makes :
+	for %i in ($(LISTKERNEL)) do $(CP) GenericWin32Makefile $(LWPATH)\%i\obj\Makefile.win32 
+	for %i in ($(LISTPACKAGE)) do $(CP) GenericWin32Makefile $(LWPATH)\package_%i\obj\Makefile.win32
+
+# Creation of a tar.gz archive
+tar : clean
+	cd $(HOME)\softs & tar cvf LastWave$(VERSION).tar LastWave$(VERSION)\ & gzip LastWave$(VERSION).tar
+
+
+
+
+
+
+
+
+
+
+
+
+

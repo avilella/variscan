@@ -1,0 +1,295 @@
+############################################################################
+#
+# This is a demo file for the MP package that allows to
+# reproduce the figures 1-5 of the paper
+# "Harmonic Decomposition of Audio Signals with Matching Pursuit"
+# by E. Bacry and R. Gribonval
+#
+############################################################################
+
+#source notes/package.def
+
+# Parameters for a nice display
+#gclass.FramedView.default.axisMargin=0
+#gclass.FramedView.default.ticksIn=1
+#gclass.FramedView.default.axis=1
+#gclass.FramedView.default.axisFrame=1
+#gclass.FramedView.default.viewMargin={30 20 25 20}
+#gclass.FramedView.default.labelFont='12-italic'
+
+#gclass.WindowDisp.default.bg='white'
+#gclass.WindowDisp.default.dx=0
+#gclass.WindowDisp.default.dy=0
+
+#colormap current 'grey'
+
+# Figure 1 :
+setproc DemoHarmoMP_1 {} "{{{} {Demo command that reproduces the figure 1 of the paper 'Harmonic Decomposition of Audio Signals with Matching Pursuit' by E. Bacry and R. Gribonval. For the paper the figure was post-processed by moving the '0' on the y axis not to overlap the '200' on the x axis.}}}" {
+
+  import args 1 System
+  if (System == 'unix') {
+  echo 
+  echo WARNING : For unix users, there is a bug that forbids you to close
+  echo the window using the X-Window menu. It will core dump right away. 
+  echo To delete a window just hit the 'f1' key while the mouse is in the
+  echo window you want to delete.
+  }
+  import args m
+  import args objCur
+  scriptDirectory=[var unix LWSOURCEDIR]
+  dataDir="${scriptDirectory}/mp/data"
+
+  # Set the current book to 'm'
+  m 
+
+  # Reads the data from files
+  book readold 1 "${dataDir}/harmo_exemple.book" 512
+  read 0    "${dataDir}/harmo_exemple.sig"
+
+  # Display the book and signal with captions and labels
+  disp Figure1 0 m m -size 700 590 -dxdy 0 0 -x 200 600 -..3 -fund 'sum' -..fv3 -xLabel 't' -yLabel 'w' -..fv1 -xLabel 't' -..fv2 -xLabel 't' -yLabel 'w'
+
+  setgu ..fv2.ylabel -font 'symbol-14'
+  setgu ..fv3.ylabel -font 'symbol-14'
+
+  msge ..fv1 add 'text' Text -string "(a)" -pos 629 47 -font '15'
+  msge ..fv2 add 'text' Text -string "(b)" -pos 629 47 -font '15'
+  msge ..fv3 add 'text' Text -string "(c)" -pos 629 47 -font '15'
+}
+
+help DemoHarmoMP_1
+
+# Figure 2 :
+setproc DemoHarmoMP_2 {} "{{{} {Demo command that reproduces the figure 2 of the paper 'Harmonic Decomposition of Audio Signals with Matching Pursuit' by E. Bacry and R. Gribonval.}}}" {
+  import args 1 System
+  if (System == 'unix') {
+  echo 
+  echo WARNING : For unix users, there is a bug that forbids you to close
+  echo the window using the X-Window menu. It will core dump right away. 
+  echo To delete a window just hit the 'f1' key while the mouse is in the
+  echo window you want to delete.
+  }
+  import args m
+  import args objCur
+  scriptDirectory=[var unix LWSOURCEDIR]
+  dataDir="${scriptDirectory}/mp/data"
+
+  # Gets the FoF atom window of size 512 samples in signal 0 of 'objCur'
+  0m = [stft window FoF 512]
+  # Displays it
+  disp Figure2 0 -size 300 300 
+}
+
+help DemoHarmoMP_2
+
+# Figure 3 :
+setproc DemoHarmoMP_3 {} "{{{} {Demo command that reproduces the figure 3 of the paper 'Harmonic Decomposition of Audio Signals with Matching Pursuit' by E. Bacry and R. Gribonval.}}}" {
+  import args 1 System
+  if (System == 'unix') {
+  echo 
+  echo WARNING : For unix users, there is a bug that forbids you to close
+  echo the window using the X-Window menu. It will core dump right away. 
+  echo To delete a window just hit the 'f1' key while the mouse is in the
+  echo window you want to delete.
+  }
+  import args m
+  import args objCur
+  scriptDirectory=[var unix LWSOURCEDIR]
+  dataDir="${scriptDirectory}/mp/data"
+
+  # Set the current book to 'm'
+  m
+
+  # Read the data from files
+  echo "Please wait while the data is read"
+  echo "This may take a few seconds."  
+  book read m "${dataDir}/clarinette.book"
+  read 0      "${dataDir}/clarinette.sig"
+
+  # Builds the reconstructed signal from the book and puts it in signal '1'
+  echo "Please wait while the signal is reconstructed from the book."
+  echo "This may take a few seconds."  
+  mpr 1
+
+  # Display the book and signal with captions and labels
+  disp Figure3 0 m 0m-1m -x 0 1.7 -size 700 590 -dxdy 0 0 -..fv1 -bound '*' '*' -1 1  -..fv3 -bound '*' '*' -1 1  -..fv2 -bound '*' '*' 380 1050  -..2 -fund 'sum' -expo 22 \
+-..fv2 -xLabel 't' -yLabel 'w' -..fv1 -xLabel 't' -..fv3 -xLabel 't'  
+
+  setgu ..fv2.ylabel -font  'symbol-14'
+  msge ..fv2.ylabel pmove 0 10 
+
+  msge ..fv1 add 'text' Text -string "(a)" -pos 629 47 -font '15'
+  msge ..fv2 add 'text' Text -string "(b)" -pos 629 47 -font '15'
+  msge ..fv3 add 'text' Text -string "(c)" -pos 629 47 -font '15'
+
+  msge ..fv2.view add 'note1' Text -string "(1)" -apos 77 341
+  msge ..fv2.view add 'note2' Text -string "(2)" -apos 129 328
+  msge ..fv2.view add 'note3' Text -string "(3)" -apos 177 320
+  msge ..fv2.view add 'note4' Text -string "(4)" -apos 228 305
+  msge ..fv2.view add 'note5' Text -string "(5)" -apos 272 313
+  msge ..fv2.view add 'note6' Text -string "(6)" -apos 320 297
+  msge ..fv2.view add 'note7' Text -string "(7)" -apos 346 288
+  msge ..fv2.view add 'note8' Text -string "(8)" -apos 371 259
+  msge ..fv2.view add 'note9' Text -string "(9)" -apos 415 279
+  msge ..fv2.view add 'note10' Text -string "(10)" -apos 446 270
+  msge ..fv2.view add 'note11' Text -string "(11)" -apos 516 227
+
+#msge ..fv2.view add 'note1' Text -string "(A)" -apos 77 337
+#msge ..fv2.view add 'note2' Text -string "(B)" -apos 97 337
+#msge ..fv2.view add 'note3' Text -string "(C#)" -apos 117 337
+#msge ..fv2.view add 'note4' Text -string "(D)" -apos 137 337
+#msge ..fv2.view add 'note5' Text -string "(C#)" -apos 157 337
+#msge ..fv2.view add 'note6' Text -string "(D#)" -apos 177 337
+#msge ..fv2.view add 'note7' Text -string "(E)" -apos 197 337
+#msge ..fv2.view add 'note8' Text -string "(G)" -apos 217 337
+#msge ..fv2.view add 'note9' Text -string "(E)" -apos 237 337
+#msge ..fv2.view add 'note10' Text -string "(F#)" -apos 257 337
+#msge ..fv2.view add 'note11' Text -string "(B)" -apos 277 337
+ 
+}
+
+help DemoHarmoMP_3
+
+# Figure 4 :
+setproc DemoHarmoMP_4 {} "{{{} {Demo command that reproduces the figure 4 of the paper 'Harmonic Decomposition of Audio Signals with Matching Pursuit' by E. Bacry and R. Gribonval.}}}" {
+  import args 1 System
+  if (System == 'unix') {
+  echo 
+  echo WARNING : For unix users, there is a bug that forbids you to close
+  echo the window using the X-Window menu. It will core dump right away. 
+  echo To delete a window just hit the 'f1' key while the mouse is in the
+  echo window you want to delete.
+  }
+  import args m
+  import args objCur
+  scriptDirectory=[var unix LWSOURCEDIR]
+  dataDir="${scriptDirectory}/mp/data"
+
+  # Set the current book to 'm'
+  m
+
+  # Read the data from a file
+  book read m "${dataDir}/clarinette.book"
+
+  # Detect the notes from the book and puts them in a list 'no'
+  echo "Please wait while the notes are detected from the book."
+  echo "This may take a few seconds"
+  no=[notes m :: > ] :: >
+
+  # Computes the 'energy density profile' at the location of 
+  # the first molecule of the book and puts it in signal '0'
+  profile m 0 0    
+
+  # Display with captions and legends
+  disp Figure4 m 0 -dxdy 0 0 -size 700 450 -..1 -expo 21 -fund 'sum' -..fv1 -bound '*' '*' 380 1050 \
+-xLabel 't' -yLabel 'w' -..fv2 -bound '*' '*' '*' 0.5 -yLabel 'D' -xLabel 't'
+
+  # Puts triangles for each detected note
+  _AddNotes ..1 $no
+
+  setgu ..fv1.ylabel -font 'symbol-14'
+  msge ..fv1.ylabel pmove 0 10
+  msge ..fv2.ylabel pmove 0 3
+  msge ..fv2 add 'om' Text -string "w" -pos 13 49 -font 'symbol-10'
+  msge ..fv1 add 'text' Text -string "(a)" -pos 627 45 -font '15'
+  msge ..fv2 add 'text' Text -string "(b)" -pos 627 45 -font '15'
+
+  msge ..fv1.view add 'note1_' Text -string "(A)" -apos 74 167
+  msge ..fv1.view add 'note2_' Text -string "(B)" -apos 120 152
+  msge ..fv1.view add 'note3_' Text -string "(C)" -apos 163 141
+  msge ..fv1.view add 'note4_' Text -string "(D)" -apos 207 125
+  msge ..fv1.view add 'note5_' Text -string "(C#)" -apos 263 156
+  msge ..fv1.view add 'note6_' Text -string "(D#)" -apos 285 116
+  msge ..fv1.view add 'note7_' Text -string "(E)" -apos 318 105
+  msge ..fv1.view add 'note8_' Text -string "(G)" -apos 350 70
+  msge ..fv1.view add 'note9_' Text -string "(F)" -apos 379 117
+  msge ..fv1.view add 'note10_' Text -string "(F#)" -apos 434 84
+  msge ..fv1.view add 'note11_' Text -string "(B)" -apos 476 38
+
+  msge ..fv1.view add 'lineh' Line -point1 -10 438.200 -point2 10 438.200 -line dash
+
+  msge ..fv2.view add 'lineh' Line -point1 -10 -19 -point2 10 -14 -line dash
+  msge ..fv2.view add 'linev1' Line -point1 0.129 -100 -point2 0.129 10 -line dash
+  msge ..fv2.view add 'linev2' Line -point1 0.32 -100 -point2 0.32 10 -line dash
+  msge ..fv2 add 'theta' Text -string "q" -pos 18 78 -font 'symbol-12'
+  msge ..fv2 add 'tbeg' Text -string "t" -pos 67 218 -font '12-italic'
+  msge ..fv2 add 'beg' Text -string "beg" -pos 73 222 -font '8-italic'
+  msge ..fv2 add 'tend' Text -string "t" -pos 138 218 -font '12-italic'
+  msge ..fv2 add 'end' Text -string "end" -pos 144 222 -font '8-italic'
+  
+}
+
+help DemoHarmoMP_4
+
+# Figure 5 :
+setproc DemoHarmoMP_5 {} "{{{} {Demo command that reproduces the figure 5 of the paper 'Harmonic Decomposition of Audio Signals with Matching Pursuit' by E. Bacry and R. Gribonval.}}}" {
+
+  import args 1 System
+  if (System == 'unix') {
+  echo 
+  echo WARNING : For unix users, there is a bug that forbids you to close
+  echo the window using the X-Window menu. It will core dump right away. 
+  echo To delete a window just hit the 'f1' key while the mouse is in the
+  echo window you want to delete.
+  }
+
+  import args m
+  import args objCur
+  scriptDirectory=[var unix LWSOURCEDIR]
+  dataDir="${scriptDirectory}/mp/data"
+
+  # Sets the current book to 'm'
+  m
+
+  # Read the data from a file
+  book read "${dataDir}/bach.book"
+  read 0    "${dataDir}/bach.sig"
+
+  # Detect the notes from the book and puts them in a list 'no'
+  echo "Please wait while the notes are detected from the book."
+  echo "This may take a few seconds"
+  no=[notes m :: >] :: >
+
+  # Display with captions and legends
+  disp Figure5 m -x 0.30 3.6 -dxdy 0 0 -size 700 350 -..1 -expo 19 -fund 'sum' -..fv1 -bound '*' '*' 220 680 -xLabel 't' -yLabel 'w' 
+
+  # Puts triangles for each detected note
+  _AddNotes ..1 $no
+  
+  setgu ..fv1.ylabel -font 'symbol-14'
+  
+  msge ..fv1.view add 'note1_' Text -string "(D)" -apos 49 253
+  msge ..fv1.view add 'note2_' Text -string "(E)" -apos 82 229
+  msge ..fv1.view add 'note3_' Text -string "(F)" -apos 100 219
+  msge ..fv1.view add 'note4_' Text -string "(G)" -apos 119 189
+  msge ..fv1.view add 'note5_' Text -string "(A)" -apos 134 156
+  msge ..fv1.view add 'note6_' Text -string "(B)" -apos 125 119
+  msge ..fv1.view add 'note7_' Text -string "(C#)" -apos 158 77
+  msge ..fv1.view add 'note8_' Text -string "(D)" -apos 190 59
+  msge ..fv1.view add 'note9_' Text -string "(C)" -apos 228 106
+  msge ..fv1.view add 'note10_' Text -string "(Bb)" -apos 263 142
+  msge ..fv1.view add 'note12_' Text -string "(A)" -apos 269 164
+  msge ..fv1.view add 'note13_' Text -string "(G)" -apos 262 190
+  msge ..fv1.view add 'note14_' Text -string "(F)" -apos 262 217
+  msge ..fv1.view add 'note15_' Text -string "(E)" -apos 270 260
+  msge ..fv1.view add 'note151_' Text -string "(D)" -apos 292 268
+  msge ..fv1.view add 'note16_' Text -string "(D)" -apos 337 259
+  msge ..fv1.view add 'note17_' Text -string "(C#)" -apos 312 295
+  msge ..fv1.view add 'note18_' Text -string "(E)" -apos 350 231
+  msge ..fv1.view add 'note19_' Text -string "(F)" -apos 375 220
+  msge ..fv1.view add 'note20_' Text -string "(G)" -apos 387 188
+  msge ..fv1.view add 'note21_' Text -string "(A)" -apos 390 169
+  msge ..fv1.view add 'note22_' Text -string "(Bb)" -apos 415 136
+  msge ..fv1.view add 'note23_' Text -string "(E)" -apos 447 43
+
+  # Plays the original signal, then the synthesized notes
+  notes m -s 1 $no
+  echo "Play the original signal ..."
+  sound play 0
+  echo "Play the synthesis of the detected notes with pure sinusoids  ..."
+  sound play 1
+}
+
+help DemoHarmoMP_5
+
+

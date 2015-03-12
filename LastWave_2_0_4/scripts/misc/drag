@@ -1,0 +1,132 @@
+#..........................................................................
+#                                                                         
+#      L a s t W a v e    P a c k a g e 'misc' 2.0
+#
+#      Author Emmanuel Bacry                                               
+#                                                                          
+#..........................................................................
+
+
+
+#
+# This is a routine to draw a shape in a 'glist' using the mouse
+# The first time you call this script, you must send the following  arguments
+#   - the 'glist' you want to draw the shape in
+#   - The type of shape you want to draw : rect, ellipse or line (optional)
+#   - An optional list representing a callback procedure along with some arguments
+#     This call back procedure will be called each time a motion event is processed.
+#     The current 'rect' will be send as the last argument of this callback.
+#   - if xFlag == 1 then the shape will be extended along the x-axis all the way
+#     to the bounding rectangle
+#   - if yFlag == 1 then the shape will be extended along the y-axis all the way
+#     to the bounding rectangle
+#   - The bound rectangle if different than the bound rect of the glist (optional)
+#
+# The next calls need not to have any argument
+#
+# On the last call (eventType is buttonUp) this function
+# returns the coordinates of the rectangle if any or {} if none
+#
+
+setproc _DragShape {{glist ""} {type "rect"} {callback ""} {&int xFlag 0} {&int yFlag 0} {boundRect {}}} {
+
+  global bindings.drag
+
+  # Button down
+  if (@type == 'buttonDown') {
+    if (type(drag) == '&null') {drag = [new &array]}
+    drag.x=@x
+    drag.y=@y    
+    if (boundRect.length==0) {
+      drag.bound=[setg $glist -bound]
+    } else {
+      drag.bound=boundRect    
+    }
+    drag.xFlag=xFlag
+    drag.yFlag=yFlag   
+    drag.type=type    
+    drag.flag=0
+    drag.glist=glist
+    drag.callback=callback
+    if (drag.yFlag) {drag.y=drag.bound[2]}
+    if (drag.xFlag) {drag.x=drag.bound[0]}
+    return {}
+  }
+
+
+  # Button motion
+  if (@type == "mouseMotion") {
+  
+    # Should we erase the former rect
+    if (drag.flag) {
+      if (drag.type != "line") {
+        draw $drag.type $drag.glist drag.x drag.y drag.w drag.h -mode 'inverse' -clip -rectType 'large'
+      } else {
+        draw line $drag.glist drag.x drag.y drag.x+drag.w drag.y+drag.h -mode 'inverse' -clip -rectType 'large'
+      }
+      drag.flag=0
+    }
+    
+    x=@x
+    if (x > drag.bound[1]) {x =drag.bound[1]}
+    if (x < drag.bound[0]) {x =drag.bound[0]}
+    drag.w = x-drag.x
+    
+    y=@y
+    if (y > drag.bound[3]) {y =drag.bound[3]}
+    if (y < drag.bound[2]) {y =drag.bound[2]}
+    drag.h= y-drag.y
+    
+
+    if (drag.xFlag) {drag.w = drag.bound[1]-drag.bound[0]}
+    if (drag.yFlag) {drag.h = drag.bound[3]-drag.bound[2]}
+
+    if (!drag.flag) {
+      if (drag.type != "line") {
+        draw $drag.type $drag.glist drag.x drag.y drag.w drag.h -mode 'inverse' -clip -rectType 'large'
+      } else {
+        draw line $drag.glist drag.x drag.y drag.x+drag.w drag.y+drag.h -mode 'inverse' -clip -rectType 'large'
+      }
+    }
+         
+    drag.flag=1
+    
+    # If no call back then return
+    if (drag.callback== "") {return {}}
+    
+    # Otherwise, let's call the callback !
+    eval %%`$drag.callback drag.x drag.y drag.w drag.h`
+    
+    return {}
+  } 
+
+  # Button Up
+
+  if (drag.flag == 0) {
+    rect={}
+  } else {
+    rect={drag.x drag.y drag.w drag.h}
+  }
+  
+  var delete 1 bindings.drag
+  
+  return rect
+}
+
+# This function can be called to get the drag rect at any moment during the drag
+setproc _GetDragRect {} {
+
+  global bindings.drag
+
+  if (![var exist drag.w]) {return {}}
+  
+  return {drag.x drag.y drag.w drag.h}
+}
+
+
+binding delete 'drag'
+setbinding 'drag' View leftButtonDown ctrlShift {_DragShape @objname 'rect' "" 0 0 [setg @object -bound]}  
+setbinding 'drag' View leftButtonMotion ctrlShift {_DragShape}  
+setbinding 'drag' View leftButtonUp ctrlShift {_DragShape}  
+binding activate 'drag'
+

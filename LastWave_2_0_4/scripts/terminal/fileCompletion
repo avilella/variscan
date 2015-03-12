@@ -1,0 +1,91 @@
+#..........................................................................
+#                                                                         
+#      L a s t W a v e    P a c k a g e 'terminal' 2.0
+#
+#      Author Emmanuel Bacry                                               
+#      
+#..........................................................................
+
+
+#
+# Function for file completion
+#
+
+binding delete 'fcompletion'
+
+setbinding 'fcompletion' "Terminal file completion"
+
+setbinding 'fcompletion' terminal keyDown _filec {_FileComp}
+
+setproc _FileComp {} {
+
+  if ([terminal mode] != 'command') {return}
+
+  #### get the command line and the cursor position
+  line=[terminal line]
+  cursor=[terminal cursor]
+
+  #### if the line is empty then return
+  if (line.length == 0) {
+    terminal beep
+    return
+  }
+
+  #### Check that the cursor is at the end of a word
+  if (line[cursor-1] == ' ') {
+    terminal beep
+    return
+  }
+  
+  ### Get the word
+  line1 = line[:cursor-1]
+  liner = line1[:-1:]
+  l = [str match liner '[*^ ]' 1]
+  if (l.length==0) {
+    terminal beep
+    return
+  }
+  word = liner[l]
+  word = word[:-1:]
+  if (word[0] == '"') {word = word[1:]}
+  if (word[0] == "'") {word = word[1:]}
+
+  lv = [file list word+'*']
+  lvp = [file listp word+'*']
+  
+  #### If the completion list is empty then return
+  if (lv.length == 0) {
+    terminal beep
+    return
+  }
+  
+  #### We update the lists to add a / to directories
+  for {i=0} (i<lv.length) {i+=1} {
+    f = lvp[i]
+    {type size} = [file info f]
+    if (type == 'directory') {
+      lvp[i] += '/'
+      lv[i] += '/'
+    }
+  }
+
+  ### If more than one result then print the listv
+  if (lv.length > 1) {
+    printf "\n"
+    listv niceprint lv
+    printf "%s" [terminal prompt]
+    terminal line line
+    terminal cursor cursor
+  }
+  
+  #### Get the completion
+  res = [_GetCompletion word lvp]
+  
+  # Insert the completion
+  terminal insert res
+}
+
+
+#let's activate the binding
+binding activate 'fcompletion'
+
