@@ -16,6 +16,21 @@ ADD data ${INSTALL_DIR}/${APP}/data
 ADD scripts ${INSTALL_DIR}/${APP}/scripts	       
 ADD LastWave_2_0_4 ${INSTALL_DIR}/${APP}/LastWave_2_0_4 
 
+ADD AUTHORS ${INSTALL_DIR}/${APP}
+ADD autogen.sh ${INSTALL_DIR}/${APP}
+ADD ChangeLog ${INSTALL_DIR}/${APP}
+
+ADD configure.in ${INSTALL_DIR}/${APP}
+ADD COPYING ${INSTALL_DIR}/${APP}
+ADD gdb.avb ${INSTALL_DIR}/${APP}
+ADD INSTALL ${INSTALL_DIR}/${APP}
+ADD LICENSE ${INSTALL_DIR}/${APP}
+ADD NEWS ${INSTALL_DIR}/${APP}
+ADD README ${INSTALL_DIR}/${APP}
+ADD README.devel ${INSTALL_DIR}/${APP}
+ADD variscan.dev ${INSTALL_DIR}/${APP}
+ADD variscan.sh ${INSTALL_DIR}/${APP}
+
 RUN cd ${INSTALL_DIR} &&\
     autoreconf --install ;\
     ./configure --prefix=${INSTALL_DIR}/build &&\
