@@ -4,7 +4,7 @@ MAINTAINER Albert Vilella, avilella@gmail.com
 ENV INSTALL_DIR /opt/
 ENV APP variscan
 
-ENV PACKAGES wget binutils make csh g++ sed gawk perl
+ENV PACKAGES wget binutils make csh g++ sed gawk perl dh-autoreconf
 RUN apt-get update -y && apt-get install -y --no-install-recommends ${PACKAGES}
 
 ADD t ${INSTALL_DIR}/${APP}/t	       
