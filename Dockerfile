@@ -17,7 +17,7 @@ ADD scripts ${INSTALL_DIR}/${APP}/scripts
 ADD LastWave_2_0_4 ${INSTALL_DIR}/${APP}/LastWave_2_0_4 
 
 RUN cd ${INSTALL_DIR} &&\
-    autoreconf --install &&\
+    autoreconf --install ;\
     ./configure --prefix=${INSTALL_DIR}/build &&\
     make &&\
     make install
