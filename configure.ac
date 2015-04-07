@@ -1,6 +1,9 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT(src/variscan.c)
-AM_INIT_AUTOMAKE(variscan, 2.0.3)
+#AC_INIT(src/variscan.c)
+#AM_INIT_AUTOMAKE(variscan, 2.0.3)
+AC_INIT([variscan], [2.0.3])
+AC_CONFIG_SRCDIR([src/variscan.c])
+AM_INIT_AUTOMAKE
 
 AC_ARG_ENABLE(debug,
 [  --enable-debug    Turn on debugging],
