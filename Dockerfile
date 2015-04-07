@@ -16,6 +16,12 @@ ADD data ${INSTALL_DIR}/${APP}/data
 ADD scripts ${INSTALL_DIR}/${APP}/scripts	       
 ADD LastWave_2_0_4 ${INSTALL_DIR}/${APP}/LastWave_2_0_4 
 
+RUN cd ${INSTALL_DIR} &&\
+    autoreconf --install &&\
+    ./configure --prefix=${INSTALL_DIR}/build &&\
+    make &&\
+    make install
+
 # Define an entrypoint
 
 ENTRYPOINT ["/opt/variscan/build/bin/variscan","/opt/variscan/data/hapmap_example.hapmap","/opt/variscan/data/hapmap_example.conf"]
