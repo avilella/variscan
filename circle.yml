@@ -4,5 +4,5 @@ machine:
 
 dependencies:
   override:
-    - make build
+    - autoreconf --install && make
 
