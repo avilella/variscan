@@ -3,14 +3,14 @@ variscan
 
 1. Introduction
 ---------------
-  'variscan' implements some of the basic algorithms of nucleotide
+  **variscan** implements some of the basic algorithms of nucleotide
   variability for intra- and/or interspecific polymorphism data. It
   was designed to work together with the 'LastWave' package, but can
   also be used as stand-alone software.
   
   This file is only supposed to give a quick overview of the
-  'variscan' package. An extensive documentation can be found in the 
-  'doc' folder! 
+  **variscan** package. An extensive documentation can be found in the 
+  `doc/` folder! 
 
 
 2. Requirements
@@ -21,10 +21,10 @@ variscan
     higher).
   * If you want to run the scripts that this package provides you
     will need to have PERL installed.
-  * 'variscan' only calculates DNA polymorphism related parameters.
+  * **variscan** only calculates DNA polymorphism related parameters.
     If you want to do a multiresolution analysis of this data, you
     will have to download the 'LastWave' package.
-  * If you want to compile 'variscan' yourself you will need a
+  * If you want to compile **variscan** yourself you will need a
     C compiler (preferably GCC) to be installed. The installation
     of Autotools might also prove useful.
 
@@ -35,7 +35,7 @@ variscan
   Here is a brief description of the contents of the different
   directories:
 
-  /. : The root directory of 'variscan'. It contains documentation
+  /. : The root directory of **variscan**. It contains documentation
        files, as well as files used in the compiling process.
 
   /bin : Contains precompiled executables for different operating
@@ -43,15 +43,15 @@ variscan
 
   /data: Contains example alignments and configuration files.
 
-  /doc: Contains an extensive documentation of 'variscan' and all
+  /doc: Contains an extensive documentation of **variscan** and all
         associated programs and scripts in PDF format.
 
   /GUI: Contains the JAVA-based graphical user interface (GUI).
 
-  /scripts: Contains scripts to help run 'variscan' and its
+  /scripts: Contains scripts to help run **variscan** and its
             associated programs.
 
-  /src: Contains the source code of 'variscan'.
+  /src: Contains the source code of **variscan**.
 
   /t: A folder solely used for testing purposes by the developers.
       Nothing interesting here...
@@ -63,7 +63,7 @@ variscan
   * Extract the archive to a folder of your choice. A sub-folder
     called 'variscan-2.0' will appear. It contains yet another
     folder called 'bin' which contains already compiled executables
-    for different systems. These are all you need to run 'variscan'.
+    for different systems. These are all you need to run **variscan**.
 
   If you don't want to use the precompiled executables but want to
   compile yourself, here is a short description on how it works
@@ -82,7 +82,7 @@ variscan
 
     make
 
-  A new binary called 'variscan' will appear in the 'src' folder.
+  A new binary called **variscan** will appear in the 'src' folder.
   
   NOTE:
   If you don't have Autotools, you can try to compile by simply
@@ -105,7 +105,7 @@ variscan
 5. Usage
 --------
 
-  * For information on how to use 'variscan', 'LastWave', the GUI
+  * For information on how to use **variscan**, 'LastWave', the GUI
     and much more, please read our extensive documentation in the
     'doc' folder. Chapter 6 contains an in-detail example of how
     to run the different programs.
