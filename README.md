@@ -152,7 +152,7 @@ It should compile in Mac OSX.
 
   * This program uses some basic utilities of Jim Kent's C
     freelib. This library saved literally hundreds of hours of our
-    time. If you happen to meet Jim Kent in person, please pay him a
+    time. If you happen to meet Jim Kent in person, please buy him a
     beer and send the bill to us.
 
 
