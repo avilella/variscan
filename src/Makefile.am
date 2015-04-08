@@ -44,7 +44,7 @@ endif
 
 #AM_CFLAGS = $(OTHERFLAGS) -W -Wall -lm -ansi 
 AM_CFLAGS = $(OTHERFLAGS) -W -Wall -ansi -pedantic
-CFLAGS =
+# CFLAGS =
 
 # bin_PROGRAMS= axt_variscan
 # axt_variscan_SOURCES = variscan.20040128.c variscan.20040128.h statistics.c statistics.h intExp.c kxTok.h kxTok.c common.c common.h linefile.c linefile.h memalloc.c memalloc.h dlist.c dlist.h errabort.c errabort.h dystring.c dystring.h pop.c pop.h
