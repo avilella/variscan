@@ -126,15 +126,13 @@ It should compile in Mac OSX.
 7. Bugs
 -------
   If you encounter bugs which are not listed here, please send a
-  report to the main authors (See AUTHORS). We aim to have a "bug
-  reporting" framework soon.
+  report to the main authors (See AUTHORS).
 
 
 8. Community
 ------------
   If you would like to see a new feature implemented, send the
-  suggestion to the main authors (See AUTHORS). We aim to have an
-  "asked features" framework soon.
+  suggestion to the main authors (See AUTHORS).
 
 
 9. Thanks
