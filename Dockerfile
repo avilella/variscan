@@ -1,4 +1,4 @@
-FROM debian:wheezy
+FROM ubuntu:14.04
 MAINTAINER Albert Vilella, avilella@gmail.com
 
 ENV INSTALL_DIR /opt/avilella
@@ -16,23 +16,23 @@ ADD data ${INSTALL_DIR}/${APP}/data
 ADD scripts ${INSTALL_DIR}/${APP}/scripts	       
 ADD LastWave_2_0_4 ${INSTALL_DIR}/${APP}/LastWave_2_0_4 
 
-COPY AUTHORS ${INSTALL_DIR}/${APP}/
-COPY autogen.sh ${INSTALL_DIR}/${APP}/
 COPY ChangeLog ${INSTALL_DIR}/${APP}/
 
 COPY configure.ac ${INSTALL_DIR}/${APP}/
-COPY COPYING ${INSTALL_DIR}/${APP}/
-COPY gdb.avb ${INSTALL_DIR}/${APP}/
-COPY INSTALL ${INSTALL_DIR}/${APP}/
-COPY LICENSE ${INSTALL_DIR}/${APP}/
-COPY NEWS ${INSTALL_DIR}/${APP}/
-COPY README ${INSTALL_DIR}/${APP}/
-COPY README.devel ${INSTALL_DIR}/${APP}/
-COPY variscan.dev ${INSTALL_DIR}/${APP}/
+COPY Makefile.am ${INSTALL_DIR}/${APP}/
 COPY variscan.sh ${INSTALL_DIR}/${APP}/
 
-RUN cd ${INSTALL_DIR}/${APP} &&\
-    autoreconf --install &&\
+COPY COPYING ${INSTALL_DIR}/${APP}/
+COPY NEWS ${INSTALL_DIR}/${APP}/
+COPY README ${INSTALL_DIR}/${APP}/
+COPY AUTHORS ${INSTALL_DIR}/${APP}/
+COPY INSTALL ${INSTALL_DIR}/${APP}/
+
+WORKDIR ${INSTALL_DIR}/${APP} 
+RUN autoreconf --install &&\
+#    aclocal ;\
+#    autoconf ;\
+#    automake --add-missing ;\
 #    ./configure --prefix=${INSTALL_DIR}/${APP}/build &&\
     ./configure &&\
     make &&\
